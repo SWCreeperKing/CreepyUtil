@@ -1,4 +1,4 @@
-using static CreepyUtil.NodeDirection;
+using static CreepyUtil.Direction;
 
 namespace CreepyUtil;
 
@@ -21,9 +21,9 @@ public readonly struct Pos(int x = 0, int y = 0)
     }
 
     public Pos Flip() => new(-Y, -X);
-    public Pos RotationReflection(NodeDirection direction) => this * direction.Positional();
-    public Pos Move(NodeDirection direction) => this + direction.Positional();
-    public Pos Mirror(NodeDirection direction) => this + direction.Positional().Flip();
+    public Pos RotationReflection(Direction direction) => this * direction.Positional();
+    public Pos Move(Direction direction) => this + direction.Positional();
+    public Pos Mirror(Direction direction) => this + direction.Positional().Flip();
     public int ManhattanDistance(Pos pos2) => Math.Abs(pos2.X - X) + Math.Abs(pos2.Y - Y);
     public long Shoelace(Pos pos2) => X * pos2.Y - Y * pos2.X;
     public double Distance(Pos pos2) => Math.Sqrt(Math.Pow(pos2.X - X, 2) + Math.Pow(pos2.Y - Y, 2));
@@ -40,7 +40,7 @@ public readonly struct Pos(int x = 0, int y = 0)
     public override bool Equals(object obj) => obj is Pos other && Equals(other);
     public override int GetHashCode() => HashCode.Combine(X, Y);
 
-    public static implicit operator Pos(NodeDirection dir) => dir.Positional();
+    public static implicit operator Pos(Direction dir) => dir.Positional();
     public static implicit operator Pos((int x, int y) pos) => new(pos.x, pos.y);
     public static implicit operator (int x, int y)(Pos pos) => (pos.X, pos.Y);
 
@@ -48,7 +48,7 @@ public readonly struct Pos(int x = 0, int y = 0)
 }
 
 [Flags]
-public enum NodeDirection
+public enum Direction
 {
     Center = 0,
     Up = 0b_0000_0001, // 0, 1
@@ -63,7 +63,10 @@ public enum NodeDirection
 
 public static partial class Ext
 {
-    public static NodeDirection Rotate(this NodeDirection dir, bool useCorners = false)
+    public static bool IsVertical(this Direction dir) => dir is Up or Down;
+    public static bool IsHorizontal(this Direction dir) => dir is Left or Right;
+    
+    public static Direction Rotate(this Direction dir, bool useCorners = false)
     {
         if (!useCorners)
         {
@@ -71,7 +74,7 @@ public static partial class Ext
             {
                 Center => Center,
                 Left => Up,
-                _ => (NodeDirection) ((int) dir << 1)
+                _ => (Direction) ((int) dir << 1)
             };
         }
 
@@ -89,7 +92,7 @@ public static partial class Ext
         };
     }
 
-    public static NodeDirection RotateCC(this NodeDirection dir, bool useCorners = false)
+    public static Direction RotateCC(this Direction dir, bool useCorners = false)
     {
         if (!useCorners)
         {
@@ -97,7 +100,7 @@ public static partial class Ext
             {
                 Center => Center,
                 Up => Left,
-                _ => (NodeDirection) ((int) dir >> 1)
+                _ => (Direction) ((int) dir >> 1)
             };
         }
 
@@ -115,7 +118,7 @@ public static partial class Ext
         };
     }
 
-    public static NodeDirection Rotate180(this NodeDirection dir)
+    public static Direction Rotate180(this Direction dir)
         => dir switch
         {
             Center => Center,
@@ -129,7 +132,7 @@ public static partial class Ext
             DownLeft => UpRight,
         };
 
-    public static Pos Positional(this NodeDirection dir, bool leftRightReversed = false, bool upDownReversed = false)
+    public static Pos Positional(this Direction dir, bool leftRightReversed = false, bool upDownReversed = false)
     {
         var dx = 0;
         if (dir.HasFlag(Right))
@@ -159,7 +162,7 @@ public static partial class Ext
     // --> / <-- b
     //     |
     //     v b
-    public static NodeDirection Mirror(this NodeDirection dir)
+    public static Direction Mirror(this Direction dir)
         => dir switch
         {
             Up => Left, Right => Down, Down => Right, Left => Up,
@@ -170,13 +173,13 @@ public static partial class Ext
     // --> \ <-- b
     //     |
     //     v a
-    public static NodeDirection MirrorOther(this NodeDirection dir)
+    public static Direction MirrorOther(this Direction dir)
         => dir switch
         {
             Up => Right, Right => Up, Down => Left, Left => Down,
         };
 
-    public static NodeDirection ToDir(this (int x, int y) dir)
+    public static Direction ToDir(this (int x, int y) dir)
         => dir switch
         {
             (0, -1) => Up,
@@ -185,4 +188,28 @@ public static partial class Ext
             (-1, 0) => Left,
             _ => Center
         };
+    
+    //https://www.wikihow.com/Calculate-the-Area-of-a-Polygon
+    //https://en.wikipedia.org/wiki/Shoelace_formula
+    public static long Shoelace(this IEnumerable<(int amount, Direction dir)> list)
+    {
+        long x = 0, y = 0, area = 0, perimeter = 0;
+        foreach (var (amount, dir) in list)
+        {
+            long lx = x, ly = y;
+            if (dir is Up or Down)
+            {
+                y += amount * (dir is Up ? -1 : 1);
+            }
+            else
+            {
+                x += amount * (dir is Left ? -1 : 1);
+            }
+
+            perimeter += amount;
+            area += lx * y - ly * x;
+        }
+
+        return Math.Abs(area / 2) + perimeter / 2 + 1;
+    }
 }

@@ -1,5 +1,5 @@
 using System.Text;
-using static CreepyUtil.NodeDirection;
+using static CreepyUtil.Direction;
 
 namespace CreepyUtil;
 
@@ -37,11 +37,9 @@ public class Matrix2d<T>
         Array = new T[TrueSize = Size.w * Size.h];
 
         for (var y = 0; y < inArray.Count; y++)
+        for (var x = 0; x < inArray[y].Length; x++)
         {
-            for (var x = 0; x < inArray[y].Length; x++)
-            {
-                this[x, y] = inArray[y][x];
-            }
+            this[x, y] = inArray[y][x];
         }
     }
 
@@ -61,7 +59,9 @@ public class Matrix2d<T>
     {
         for (var y = 0; y < Size.h; y++)
         for (var x = 0; x < Size.w; x++)
+        {
             yield return (x, y, this[x, y]);
+        }
     }
 
     public Matrix2d<T> Iterate(Action<Matrix2d<T>, T, int> action)
@@ -104,17 +104,9 @@ public class Matrix2d<T>
     public bool PositionExists(int x, int y) => x >= 0 && y >= 0 && x < Size.w && y < Size.h;
 
     public Pos[] WhereInCircle(Pos pos, Predicate<T> condition, bool corners = true)
-    {
-        List<Pos> cords = [];
-        foreach (var offset in corners ? SurroundDiagonal : Surround)
-        {
-            var newPos = pos + offset;
-            if (!PositionExists(newPos) || !condition(this[newPos])) continue;
-            cords.Add(newPos);
-        }
-
-        return cords.ToArray();
-    }
+        => (corners ? SurroundDiagonal : Surround)
+            .Select(offset => pos + offset)
+            .Where(newPos => PositionExists(newPos) && condition(this[newPos])).ToArray();
 
     public bool[] MatchInCircle(Pos pos, Predicate<T> condition, bool corners = true)
     {
@@ -144,7 +136,7 @@ public class Matrix2d<T>
             MarchAndCountWhile(x - ring, y, Left, count)
         ];
 
-    public long MarchAndCountWhile(int x, int y, NodeDirection direction, Func<T, bool> count)
+    public long MarchAndCountWhile(int x, int y, Direction direction, Func<T, bool> count)
     {
         long counter = 0;
         foreach (var iterT in March(x, y, direction))
@@ -156,7 +148,7 @@ public class Matrix2d<T>
         return counter;
     }
 
-    public IEnumerable<T> MarchRange(int x, int y, int end, NodeDirection direction)
+    public IEnumerable<T> MarchRange(int x, int y, int end, Direction direction)
     {
         var isVertical = direction is Up or Down;
         var length = end - (isVertical ? y : x);
@@ -169,7 +161,7 @@ public class Matrix2d<T>
         }
     }
 
-    public IEnumerable<T> March(int x, int y, NodeDirection direction)
+    public IEnumerable<T> March(int x, int y, Direction direction)
     {
         var isVertical = direction is Up or Down;
         var set = isVertical ? y : x;
@@ -190,7 +182,7 @@ public class Matrix2d<T>
         }
     }
 
-    public Pos Find(T t) => Find(tt => tt.Equals(t));
+    public Pos Find(T t) => Find(tt => tt!.Equals(t));
 
     public Pos Find(Func<T, bool> find)
     {

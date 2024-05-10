@@ -25,11 +25,7 @@ public static class ClrCnsl
         while (true)
         {
             Console.SetCursorPosition(0, top);
-            if (isMore)
-            {
-                WriteLine($"[#yellow]{moreLeng[0]}");
-            }
-
+            
             var tempSelected = DisplayUpdateListView(isMore, formattedOptions, moreLeng, selected, options);
             if (tempSelected == -1) return selected;
             selected = tempSelected;
@@ -158,12 +154,18 @@ public static class ClrCnsl
         }
     }
 
-    public static void WaitForInput()
+    public static void WaitForSpaceInput()
     {
         WriteLine("\nPress the Spacebar to continue . . . ");
         while (GetKey() != Spacebar)
         {
         }
+    }
+    
+    public static void WaitForAnyInput()
+    {
+        WriteLine("\nPress any key to continue . . . ");
+        GetKey();
     }
 
     public static bool YesNoChoice()
