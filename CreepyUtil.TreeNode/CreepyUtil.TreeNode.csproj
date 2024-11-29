@@ -1,0 +1,30 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+
+        <Authors>SW_CreeperKing</Authors>
+        <!--        <RepositoryType>git</RepositoryType>-->
+        <!--        <PackageProjectUrl>https://github.com/SWCreeperKing/RayWork</PackageProjectUrl>-->
+        <!--        <RepositoryUrl>https://github.com/SWCreeperKing/RayWork</RepositoryUrl>-->
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <!--        <License>https://github.com/SWCreeperKing/RayWork/LICENSE</License>-->
+        <PackageTags>util utility</PackageTags>
+
+        <PackageId>CreepyUtil.TreeNode</PackageId>
+        <Description>Random Utilities</Description>
+        <PackageVersion>0.1</PackageVersion>
+        <PackageReleaseNotes>Dispose BEFORE receiving error</PackageReleaseNotes>
+
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <AppxSymbolPackageEnabled>true</AppxSymbolPackageEnabled>
+        <AppxSymbolPackageOutput>snupkg</AppxSymbolPackageOutput>
+        <DebugSymbols>true</DebugSymbols>
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+        <LangVersion>13</LangVersion>
+    </PropertyGroup>
+
+</Project>
