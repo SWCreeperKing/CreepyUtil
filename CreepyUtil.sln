@@ -10,6 +10,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CreepyUtil.ClrCnsl", "Creep
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CreepyUtil.ClrCnsl.Prompts", "CreepyUtil.ClrCnsl.Prompts\CreepyUtil.ClrCnsl.Prompts.csproj", "{1B61F01E-3080-4FE9-A843-7279406368E5}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CreepyUtil.TreeNode", "CreepyUtil.TreeNode\CreepyUtil.TreeNode.csproj", "{178D9CBA-160C-4C2F-85E7-1D3119CA3299}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -36,5 +38,9 @@ Global
 		{1B61F01E-3080-4FE9-A843-7279406368E5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1B61F01E-3080-4FE9-A843-7279406368E5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1B61F01E-3080-4FE9-A843-7279406368E5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{178D9CBA-160C-4C2F-85E7-1D3119CA3299}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{178D9CBA-160C-4C2F-85E7-1D3119CA3299}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{178D9CBA-160C-4C2F-85E7-1D3119CA3299}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{178D9CBA-160C-4C2F-85E7-1D3119CA3299}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

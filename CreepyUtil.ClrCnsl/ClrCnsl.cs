@@ -1,8 +1,7 @@
 ﻿using System.Text.RegularExpressions;
-using CreepyUtil;
 using static System.ConsoleKey;
 
-namespace RedefinedRpg;
+namespace CreepyUtil.ClrCnsl;
 
 public static class ClrCnsl
 {

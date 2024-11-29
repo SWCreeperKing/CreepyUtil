@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>net9.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         
@@ -24,7 +24,7 @@
         <DebugSymbols>true</DebugSymbols>
         <IncludeSymbols>true</IncludeSymbols>
         <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-        <LangVersion>12</LangVersion>
+        <LangVersion>13</LangVersion>
     </PropertyGroup>
 
     <ItemGroup>
@@ -32,6 +32,7 @@
       <ProjectReference Include="..\CreepyUtil.ClrCnsl\CreepyUtil.ClrCnsl.csproj" />
       <ProjectReference Include="..\CreepyUtil.Matrix2d\CreepyUtil.Matrix2d.csproj" />
       <ProjectReference Include="..\CreepyUtil.Pos\CreepyUtil.Pos.csproj" />
+      <ProjectReference Include="..\CreepyUtil.TreeNode\CreepyUtil.TreeNode.csproj" />
     </ItemGroup>
 
 </Project>

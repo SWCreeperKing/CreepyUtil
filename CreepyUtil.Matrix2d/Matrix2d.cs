@@ -265,6 +265,22 @@ public class Matrix2d<T>
 
         return sb.ToString();
     }
+    
+    public string ToString<TO>(Func<T, TO> map)
+    {
+        StringBuilder sb = new();
+        for (var y = 0; y < Size.h; y++)
+        {
+            for (var x = 0; x < Size.w; x++)
+            {
+                sb.Append(map(this[x, y]));
+            }
+
+            sb.Append('\n');
+        }
+
+        return sb.ToString();
+    }
 
     public Matrix2d<T> Duplicate() => MatrixSelect(t => t);
     public Matrix2d<T> Duplicate(Func<T, T> dupeFunc) => MatrixSelect(dupeFunc);

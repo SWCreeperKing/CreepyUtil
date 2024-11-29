@@ -1,6 +1,6 @@
-﻿using static RedefinedRpg.ClrCnsl;
+﻿using static CreepyUtil.ClrCnsl.ClrCnsl;
 
-namespace RedefinedRpg;
+namespace CreepyUtil.ClrCnsl.Prompts;
 
 public static class Prompts
 {
