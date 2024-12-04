@@ -1,7 +1,7 @@
 using System.Text;
 using static CreepyUtil.Direction;
 
-namespace CreepyUtil;
+namespace CreepyUtil.Matrix2d;
 
 public class Matrix2d<T>
 {
@@ -15,9 +15,7 @@ public class Matrix2d<T>
     public readonly (int w, int h) Size;
     public readonly int TrueSize;
 
-    public Matrix2d(int wh) : this(wh, wh)
-    {
-    }
+    public Matrix2d(int wh) : this(wh, wh) { }
 
     public Matrix2d(int w, int h)
     {
@@ -38,9 +36,7 @@ public class Matrix2d<T>
 
         for (var y = 0; y < inArray.Count; y++)
         for (var x = 0; x < inArray[y].Length; x++)
-        {
             this[x, y] = inArray[y][x];
-        }
     }
 
     public Matrix2d(IReadOnlyCollection<T> inArray, int w, int h)
@@ -51,25 +47,42 @@ public class Matrix2d<T>
         Array = inArray.ToArray();
     }
 
-    public Matrix2d(IReadOnlyCollection<T> inArray, (int w, int h) size) : this(inArray, size.w, size.h)
+    public Matrix2d(IReadOnlyCollection<T> inArray, (int w, int h) size) : this(inArray, size.w, size.h) { }
+
+    public T this[int index]
     {
+        get => Array[index];
+        set => Array[index] = value;
+    }
+
+    public T this[int x, int y]
+    {
+        get => Array[TranslatePosition(x, y)];
+        set => Array[TranslatePosition(x, y)] = value;
+    }
+
+    public T this[(int x, int y) pos]
+    {
+        get => Array[TranslatePosition(pos)];
+        set => Array[TranslatePosition(pos)] = value;
+    }
+
+    public T this[Pos pos]
+    {
+        get => Array[TranslatePosition(pos.X, pos.Y)];
+        set => Array[TranslatePosition(pos.X, pos.Y)] = value;
     }
 
     public IEnumerable<(int, int, T)> Iterate()
     {
         for (var y = 0; y < Size.h; y++)
         for (var x = 0; x < Size.w; x++)
-        {
             yield return (x, y, this[x, y]);
-        }
     }
 
     public Matrix2d<T> Iterate(Action<Matrix2d<T>, T, int> action)
     {
-        for (var i = 0; i < TrueSize; i++)
-        {
-            action(this, this[i], i);
-        }
+        for (var i = 0; i < TrueSize; i++) action(this, this[i], i);
 
         return this;
     }
@@ -78,63 +91,89 @@ public class Matrix2d<T>
     {
         for (var y = 0; y < Size.h; y++)
         for (var x = 0; x < Size.w; x++)
-        {
             action(this, this[x, y], x, y);
-        }
 
         return this;
     }
 
-    public Matrix2d<TO> MatrixSelect<TO>(Func<T, TO> select) => new(Array.Select(select).ToArray(), Size.w, Size.h);
+    public Matrix2d<TO> MatrixSelect<TO>(Func<T, TO> select)
+    {
+        return new Matrix2d<TO>(Array.Select(select).ToArray(), Size.w, Size.h);
+    }
 
     public Matrix2d<TO> MatrixSelect<TO>(Func<Matrix2d<T>, T, int, TO> select)
-        => new(Array.Select((t, i) => select(this, t, i)).ToArray(), Size.w, Size.h);
+    {
+        return new Matrix2d<TO>(Array.Select((t, i) => select(this, t, i)).ToArray(), Size.w, Size.h);
+    }
 
     public Matrix2d<TO> MatrixSelect<TO>(Func<Matrix2d<T>, T, Pos, TO> select)
-        => new(Array.Select((t, i) => select(this, t, TranslatePosition(i))).ToArray(), Size.w, Size.h);
+    {
+        return new Matrix2d<TO>(Array.Select((t, i) => select(this, t, TranslatePosition(i))).ToArray(), Size.w,
+            Size.h);
+    }
 
     public IEnumerable<TO> Select<TO>(Func<Matrix2d<T>, T, int, int, TO> select)
-        => Array.Select((t, i) =>
+    {
+        return Array.Select((t, i) =>
         {
             var (x, y) = TranslatePosition(i);
             return select(this, t, x, y);
         });
+    }
 
-    public bool PositionExists(Pos pos) => PositionExists(pos.X, pos.Y);
-    public bool PositionExists(int x, int y) => x >= 0 && y >= 0 && x < Size.w && y < Size.h;
+    public bool PositionExists(Pos pos) { return PositionExists(pos.X, pos.Y); }
 
-    public Pos[] WhereInCircle(Pos pos, Predicate<T> condition, bool corners = true)
-        => (corners ? SurroundDiagonal : Surround)
-            .Select(offset => pos + offset)
-            .Where(newPos => PositionExists(newPos) && condition(this[newPos])).ToArray();
+    public bool PositionExists(int x, int y) { return x >= 0 && y >= 0 && x < Size.w && y < Size.h; }
+
+    public List<Pos> WhereInCircle(Pos pos, Predicate<T> condition, bool corners = true)
+    {
+        List<Pos> posList = [];
+        foreach (var dxy in corners ? SurroundDiagonal : Surround)
+        {
+            var next = pos + dxy;
+            if (!PositionExists(next) || !condition(this[next])) continue;
+            posList.Add(next);
+        }
+
+        return posList;
+    }
 
     public bool[] MatchInCircle(Pos pos, Predicate<T> condition, bool corners = true)
     {
         List<bool> bools = [];
-        bools.AddRange((corners ? SurroundDiagonal : Surround)
-            .Select(offset => pos + offset)
-            .Select(newPos => PositionExists(newPos) && condition(this[newPos])));
+
+        foreach (var dxy in corners ? SurroundDiagonal : Surround)
+        {
+            var next = pos + dxy;
+            bools.Add(PositionExists(next) && condition(this[next]));
+        }
 
         return bools.ToArray();
     }
 
     public bool AnyTrueMatchInCircle(Pos pos, Predicate<T> condition, bool corners = true)
-        => MatchInCircle(pos, condition, corners).Any(b => b);
+    {
+        return MatchInCircle(pos, condition, corners).Any(b => b);
+    }
 
     public bool AnyAllCircularMarch(int x, int y, Func<T, bool> allConditional, int ring = 1)
-        => March(x, y - ring, Up).All(allConditional)
-           || March(x + ring, y, Right).All(allConditional)
-           || March(x, y + ring, Down).All(allConditional)
-           || March(x - ring, y, Left).All(allConditional);
+    {
+        return March(x, y - ring, Up).All(allConditional)
+               || March(x + ring, y, Right).All(allConditional)
+               || March(x, y + ring, Down).All(allConditional)
+               || March(x - ring, y, Left).All(allConditional);
+    }
 
     public long[] CircularMarchAndCountWhile(int x, int y, Func<T, bool> count, int ring = 1)
-        =>
+    {
+        return
         [
             MarchAndCountWhile(x, y - ring, Up, count),
             MarchAndCountWhile(x + ring, y, Right, count),
             MarchAndCountWhile(x, y + ring, Down, count),
             MarchAndCountWhile(x - ring, y, Left, count)
         ];
+    }
 
     public long MarchAndCountWhile(int x, int y, Direction direction, Func<T, bool> count)
     {
@@ -148,41 +187,46 @@ public class Matrix2d<T>
         return counter;
     }
 
-    public IEnumerable<T> MarchRange(int x, int y, int end, Direction direction)
+    public IEnumerable<T> MarchRange(Pos pos, int length, Direction direction)
     {
-        var isVertical = direction is Up or Down;
-        var length = end - (isVertical ? y : x);
+        return MarchRange(pos, length, direction.Positional());
+    }
 
-        foreach (var t in March(x, y, direction))
+    public IEnumerable<T> MarchRange(Pos pos, int length, Pos delta)
+    {
+        var i = 0;
+
+        foreach (var t in March(pos, delta))
         {
-            if (length == 0) yield break;
-            length--;
+            if (i++ >= length) yield break;
             yield return t;
         }
     }
 
-    public IEnumerable<T> March(int x, int y, Direction direction)
+    public T[]? MarchRangeArr(Pos pos, int length, Pos delta)
     {
-        var isVertical = direction is Up or Down;
-        var set = isVertical ? y : x;
-
-        if (direction is Right or Down)
+        var next = pos;
+        var arr = new T[length];
+        for (var i = 0; i < length; i++)
         {
-            for (var i = set; i < (isVertical ? Size.h : Size.w); i++)
-            {
-                yield return isVertical ? this[x, i] : this[i, y];
-            }
-
-            yield break;
+            next += delta;
+            if (!PositionExists(next)) return null;
+            arr[i] = this[next];
         }
 
-        for (var i = set; i >= 0; i--)
-        {
-            yield return isVertical ? this[x, i] : this[i, y];
-        }
+        return arr;
     }
 
-    public Pos Find(T t) => Find(tt => tt!.Equals(t));
+    public IEnumerable<T> March(Pos pos, Direction direction) { return March(pos, direction.Positional()); }
+    public IEnumerable<T> March(int x, int y, Direction direction) { return March((x, y), direction.Positional()); }
+
+    public IEnumerable<T> March(Pos pos, Pos delta)
+    {
+        var next = pos;
+        while (PositionExists(next += delta)) yield return this[next];
+    }
+
+    public Pos Find(T t) { return Find(tt => tt!.Equals(t)); }
 
     public Pos Find(Func<T, bool> find)
     {
@@ -212,11 +256,13 @@ public class Matrix2d<T>
         return posList.ToArray();
     }
 
-    public Pos[] FindAll(T find) => Array.FindAllIndexesOf(find).Select(i => TranslatePosition(i)).ToArray();
+    public Pos[] FindAll(T find) { return Array.FindAllIndexesOf(find).Select(i => TranslatePosition(i)).ToArray(); }
 
-    public Pos TranslatePosition(int index) => new(index % Size.w, (int) Math.Floor((float) index / Size.w));
-    public int TranslatePosition((int x, int y) pos) => TranslatePosition(pos.x, pos.y);
-    public int TranslatePosition(Pos pos) => TranslatePosition(pos.X, pos.Y);
+    public Pos TranslatePosition(int index) { return new Pos(index % Size.w, (int)Math.Floor((float)index / Size.w)); }
+
+    public int TranslatePosition((int x, int y) pos) { return TranslatePosition(pos.x, pos.y); }
+
+    public int TranslatePosition(Pos pos) { return TranslatePosition(pos.X, pos.Y); }
 
     public int TranslatePosition(int x, int y)
     {
@@ -224,57 +270,27 @@ public class Matrix2d<T>
         return y * Size.w + x;
     }
 
-    public T this[int index]
-    {
-        get => Array[index];
-        set => Array[index] = value;
-    }
-
-    public T this[int x, int y]
-    {
-        get => Array[TranslatePosition(x, y)];
-        set => Array[TranslatePosition(x, y)] = value;
-    }
-
-    public T this[(int x, int y) pos]
-    {
-        get => Array[TranslatePosition(pos)];
-        set => Array[TranslatePosition(pos)] = value;
-    }
-
-    public T this[Pos pos]
-    {
-        get => Array[TranslatePosition(pos.X, pos.Y)];
-        set => Array[TranslatePosition(pos.X, pos.Y)] = value;
-    }
-
-    public static implicit operator T[](Matrix2d<T> matrix2d) => matrix2d.Array;
+    public static implicit operator T[](Matrix2d<T> matrix2d) { return matrix2d.Array; }
 
     public override string ToString()
     {
         StringBuilder sb = new();
         for (var y = 0; y < Size.h; y++)
         {
-            for (var x = 0; x < Size.w; x++)
-            {
-                sb.Append(this[x, y]);
-            }
+            for (var x = 0; x < Size.w; x++) sb.Append(this[x, y]);
 
             sb.Append('\n');
         }
 
         return sb.ToString();
     }
-    
+
     public string ToString<TO>(Func<T, TO> map)
     {
         StringBuilder sb = new();
         for (var y = 0; y < Size.h; y++)
         {
-            for (var x = 0; x < Size.w; x++)
-            {
-                sb.Append(map(this[x, y]));
-            }
+            for (var x = 0; x < Size.w; x++) sb.Append(map(this[x, y]));
 
             sb.Append('\n');
         }
@@ -282,12 +298,15 @@ public class Matrix2d<T>
         return sb.ToString();
     }
 
-    public Matrix2d<T> Duplicate() => MatrixSelect(t => t);
-    public Matrix2d<T> Duplicate(Func<T, T> dupeFunc) => MatrixSelect(dupeFunc);
+    public Matrix2d<T> Duplicate() { return MatrixSelect(t => t); }
+
+    public Matrix2d<T> Duplicate(Func<T, T> dupeFunc) { return MatrixSelect(dupeFunc); }
 }
 
-public static partial class Ext
+public static class Ext
 {
     public static int[] FindAllIndexesOf<T>(this IEnumerable<T> arr, T search)
-        => arr.Select((o, i) => Equals(search, o) ? i : -1).Where(i => i != -1).ToArray();
+    {
+        return arr.Select((o, i) => Equals(search, o) ? i : -1).Where(i => i != -1).ToArray();
+    }
 }

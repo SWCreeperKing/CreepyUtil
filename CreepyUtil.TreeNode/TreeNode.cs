@@ -2,13 +2,12 @@
 
 public abstract class TreeNode<T>(string id) where T : TreeNode<T>
 {
-    private Dictionary<string, T> NodeMap;
     public readonly string Id = id;
-    public T Parent;
-    public HashSet<T> Children;
 
-    private int _Layer = 0;
-    public int Layer => _Layer;
+    public HashSet<T> Children;
+    private Dictionary<string, T> NodeMap;
+    public T Parent;
+    public int Layer { get; private set; }
 
     public static T CreateTree(Dictionary<string, string[]> map, Func<string, T> createNew)
     {
@@ -19,11 +18,8 @@ public abstract class TreeNode<T>(string id) where T : TreeNode<T>
             t.NodeMap = treeMap;
             if (map[id].Length == 0) continue;
             t.Children = map[id].Select(k => treeMap[k]).ToHashSet();
-            
-            foreach (var treeNode in t.Children)
-            {
-                treeNode.Parent = t;
-            }
+
+            foreach (var treeNode in t.Children) treeNode.Parent = t;
         }
 
         var parents = treeMap.Values.Where(n => n.Parent is null);
@@ -53,8 +49,8 @@ public abstract class TreeNode<T>(string id) where T : TreeNode<T>
 
         foreach (var child in Children)
         {
-            if (child._Layer != 0) throw new ArgumentException("A node can not have multiple parents");
-            child._Layer = _Layer + 1;
+            if (child.Layer != 0) throw new ArgumentException("A node can not have multiple parents");
+            child.Layer = Layer + 1;
             child.UpdateLayers();
         }
     }
@@ -64,22 +60,17 @@ public abstract class TreeNode<T>(string id) where T : TreeNode<T>
         var res = search(Children);
         var e = res.Children is null;
         // var e1 = (earlyExit is not null && earlyExit(res.Children));
-        return res.Children is null || (earlyExit is not null && earlyExit(res.Children)) ? res : res.Climb(search, earlyExit);
+        return res.Children is null || (earlyExit is not null && earlyExit(res.Children))
+            ? res
+            : res.Climb(search, earlyExit);
     }
 
-    public IEnumerable<T> Iterate()
-    {
-        return NodeMap.Values;
-    }
+    public IEnumerable<T> Iterate() { return NodeMap.Values; }
 
     public IEnumerable<T> IterateDeepestFirst()
     {
-        for (var i = NodeMap.Values.Max(n => n._Layer); i > 0; i--)
-        {
-            foreach (var node in NodeMap.Values.Where(n => n._Layer == i))
-            {
+        for (var i = NodeMap.Values.Max(n => n.Layer); i > 0; i--)
+            foreach (var node in NodeMap.Values.Where(n => n.Layer == i))
                 yield return node;
-            }
-        }
     }
 }

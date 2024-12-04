@@ -24,7 +24,7 @@ public static class ClrCnsl
         while (true)
         {
             Console.SetCursorPosition(0, top);
-            
+
             var tempSelected = DisplayUpdateListView(isMore, formattedOptions, moreLeng, selected, options);
             if (tempSelected == -1) return selected;
             selected = tempSelected;
@@ -35,8 +35,8 @@ public static class ClrCnsl
             var len = CleanColors(s).Length;
             var remainder = maxSpace - len;
             var halfRemainder = remainder / 2f;
-            var left = (int) Math.Floor(halfRemainder) + s.Length;
-            var right = (int) Math.Ceiling(halfRemainder);
+            var left = (int)Math.Floor(halfRemainder) + s.Length;
+            var right = (int)Math.Ceiling(halfRemainder);
             return s.PadLeft(left).PadRight(left + right);
         }
     }
@@ -44,24 +44,18 @@ public static class ClrCnsl
     private static int DisplayUpdateListView(bool isMore, string[] formattedOptions, string[] moreLeng, int selected,
         string[] options)
     {
-        if (isMore)
-        {
-            WriteLine($"[#yellow]{moreLeng[0]}");
-        }
+        if (isMore) WriteLine($"[#yellow]{moreLeng[0]}");
 
         for (var i = 0; i < Math.Min(formattedOptions.Length, ListLeng); i++)
         {
             var rI = i + Math.Max(0,
-                Math.Min(formattedOptions.Length - ListLeng, selected + 1 - (int) Math.Ceiling(ListLeng / 2f)));
+                Math.Min(formattedOptions.Length - ListLeng, selected + 1 - (int)Math.Ceiling(ListLeng / 2f)));
             var isS = selected == rI;
             WriteLine(
                 $"{(isS ? "[#green] >[!darkgray][#cyan]" : "  [#blue]")}{formattedOptions[rI]}{(isS ? "[#green][!black]< " : "  ")}");
         }
 
-        if (isMore)
-        {
-            WriteLine($"[#yellow]{moreLeng[1]}");
-        }
+        if (isMore) WriteLine($"[#yellow]{moreLeng[1]}");
 
         switch (GetKey())
         {
@@ -129,28 +123,19 @@ public static class ClrCnsl
             index = nIndex + matchValue.Length;
         }
 
-        if (index < txt.Length)
-        {
-            Console.Write(txt[index..].ToString());
-        }
+        if (index < txt.Length) Console.Write(txt[index..].ToString());
 
         SetColors(beforeFore, beforeBack);
         return;
 
-        void PeekColor() => SetColors(foregroundColorStack.Peek(), backgroundColorStack.Peek());
+        void PeekColor() { SetColors(foregroundColorStack.Peek(), backgroundColorStack.Peek()); }
     }
 
     public static void SetColors(ConsoleColor? foreground = null, ConsoleColor? background = null)
     {
-        if (foreground is not null)
-        {
-            Console.ForegroundColor = foreground.Value;
-        }
+        if (foreground is not null) Console.ForegroundColor = foreground.Value;
 
-        if (background is not null)
-        {
-            Console.BackgroundColor = background.Value;
-        }
+        if (background is not null) Console.BackgroundColor = background.Value;
     }
 
     public static void WaitForSpaceInput()
@@ -160,7 +145,7 @@ public static class ClrCnsl
         {
         }
     }
-    
+
     public static void WaitForAnyInput()
     {
         WriteLine("\nPress any key to continue . . . ");
@@ -191,18 +176,17 @@ public static class ClrCnsl
     public static double ProgressBar(double value, double max, int segmentCount, Func<double, ConsoleColor> getColor)
     {
         var delta = value / max;
-        var segmentsUsed = (int) (segmentCount * delta);
-        if (segmentsUsed == 0 && delta > 0)
-        {
-            segmentsUsed = 1;
-        }
+        var segmentsUsed = (int)(segmentCount * delta);
+        if (segmentsUsed == 0 && delta > 0) segmentsUsed = 1;
 
         Write($"[#{getColor(delta)}][{Block.Repeat(segmentsUsed)}{' '.Repeat(segmentCount - segmentsUsed)}][#r]");
         return delta;
     }
 
     public static double ProgressBar(double value, double max, int segmentCount, ConsoleColor color)
-        => ProgressBar(value, max, segmentCount, _ => color);
+    {
+        return ProgressBar(value, max, segmentCount, _ => color);
+    }
 
     public static void MoveCursorBy(int x, int y = 0, bool setX = false)
     {
@@ -210,23 +194,42 @@ public static class ClrCnsl
         SetCursor(setX ? x : pX + x, pY + y);
     }
 
-    public static void Write(char c) => Console.Write(c);
-    public static void Write(object s) => Write(s.ToString());
-    public static void WriteLine(string s) => Write($"{s}\n");
-    public static void WriteLine(object s) => Write($"{s}\n");
-    public static void WriteLine(char c) => Console.WriteLine(c);
-    public static ConsoleKey GetKey() => Console.ReadKey(true).Key;
-    public static string CleanColors(string text) => RegMatch.Replace(text, string.Empty);
-    public static (ConsoleColor, ConsoleColor) GetColors() => (Console.ForegroundColor, Console.BackgroundColor);
-    public static Pos GetCursor() => Console.GetCursorPosition();
-    public static void SetCursor(int x = 0, int y = 0) => Console.SetCursorPosition(x, y);
-    public static void SetCursor(Pos pos) => Console.SetCursorPosition(pos.X, pos.Y);
-    public static void CursorVis(bool condition = true) => Console.CursorVisible = condition;
-    public static void Clr() => Console.Clear();
+    public static void Write(char c) { Console.Write(c); }
+
+    public static void Write(object s) { Write(s.ToString()); }
+
+    public static void WriteLine(string s) { Write($"{s}\n"); }
+
+    public static void WriteLine(object s) { Write($"{s}\n"); }
+
+    public static void WriteLine(char c) { Console.WriteLine(c); }
+
+    public static ConsoleKey GetKey() { return Console.ReadKey(true).Key; }
+
+    public static string CleanColors(string text) { return RegMatch.Replace(text, string.Empty); }
+
+    public static (ConsoleColor, ConsoleColor) GetColors()
+    {
+        return (Console.ForegroundColor, Console.BackgroundColor);
+    }
+
+    public static Pos GetCursor() { return Console.GetCursorPosition(); }
+
+    public static void SetCursor(int x = 0, int y = 0) { Console.SetCursorPosition(x, y); }
+
+    public static void SetCursor(Pos pos) { Console.SetCursorPosition(pos.X, pos.Y); }
+
+    public static void CursorVis(bool condition = true) { Console.CursorVisible = condition; }
+
+    public static void Clr() { Console.Clear(); }
 }
 
 public static class Helper
 {
-    public static string Repeat(this char character, int count) => string.Join("", Enumerable.Repeat(character, count));
-    public static string Repeat(this string text, int count) => string.Join("", Enumerable.Repeat(text, count));
+    public static string Repeat(this char character, int count)
+    {
+        return string.Join("", Enumerable.Repeat(character, count));
+    }
+
+    public static string Repeat(this string text, int count) { return string.Join("", Enumerable.Repeat(text, count)); }
 }

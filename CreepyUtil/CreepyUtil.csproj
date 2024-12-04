@@ -4,13 +4,13 @@
         <TargetFramework>net9.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        
+
         <Authors>SW_CreeperKing</Authors>
-<!--        <RepositoryType>git</RepositoryType>-->
-<!--        <PackageProjectUrl>https://github.com/SWCreeperKing/RayWork</PackageProjectUrl>-->
-<!--        <RepositoryUrl>https://github.com/SWCreeperKing/RayWork</RepositoryUrl>-->
+        <!--        <RepositoryType>git</RepositoryType>-->
+        <!--        <PackageProjectUrl>https://github.com/SWCreeperKing/RayWork</PackageProjectUrl>-->
+        <!--        <RepositoryUrl>https://github.com/SWCreeperKing/RayWork</RepositoryUrl>-->
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
-<!--        <License>https://github.com/SWCreeperKing/RayWork/LICENSE</License>-->
+        <!--        <License>https://github.com/SWCreeperKing/RayWork/LICENSE</License>-->
         <PackageTags>util utility</PackageTags>
 
         <PackageId>CreepyUtil</PackageId>
@@ -28,11 +28,11 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\CreepyUtil.ClrCnsl.Prompts\CreepyUtil.ClrCnsl.Prompts.csproj" />
-      <ProjectReference Include="..\CreepyUtil.ClrCnsl\CreepyUtil.ClrCnsl.csproj" />
-      <ProjectReference Include="..\CreepyUtil.Matrix2d\CreepyUtil.Matrix2d.csproj" />
-      <ProjectReference Include="..\CreepyUtil.Pos\CreepyUtil.Pos.csproj" />
-      <ProjectReference Include="..\CreepyUtil.TreeNode\CreepyUtil.TreeNode.csproj" />
+        <ProjectReference Include="..\CreepyUtil.ClrCnsl.Prompts\CreepyUtil.ClrCnsl.Prompts.csproj"/>
+        <ProjectReference Include="..\CreepyUtil.ClrCnsl\CreepyUtil.ClrCnsl.csproj"/>
+        <ProjectReference Include="..\CreepyUtil.Matrix2d\CreepyUtil.Matrix2d.csproj"/>
+        <ProjectReference Include="..\CreepyUtil.Pos\CreepyUtil.Pos.csproj"/>
+        <ProjectReference Include="..\CreepyUtil.TreeNode\CreepyUtil.TreeNode.csproj"/>
     </ItemGroup>
 
 </Project>

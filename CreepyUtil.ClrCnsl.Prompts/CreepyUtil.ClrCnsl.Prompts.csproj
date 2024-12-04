@@ -28,7 +28,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\CreepyUtil.ClrCnsl\CreepyUtil.ClrCnsl.csproj" />
+        <ProjectReference Include="..\CreepyUtil.ClrCnsl\CreepyUtil.ClrCnsl.csproj"/>
     </ItemGroup>
 
 </Project>

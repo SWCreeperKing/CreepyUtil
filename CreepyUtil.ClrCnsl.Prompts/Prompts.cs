@@ -32,7 +32,9 @@ public static class Prompts
     }
 
     public static string YesNoConfirmInput(string prompt, Func<string, string> confirm)
-        => ConfirmAction(() => InputPrompt(prompt), confirm);
+    {
+        return ConfirmAction(() => InputPrompt(prompt), confirm);
+    }
 
     public static T YesNoPromptTest<T>(string prompt, Func<string, string> confirm,
         Func<string, (T obj, bool success)> test,

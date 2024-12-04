@@ -28,7 +28,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\CreepyUtil.Pos\CreepyUtil.Pos.csproj" />
+        <ProjectReference Include="..\CreepyUtil.Pos\CreepyUtil.Pos.csproj"/>
     </ItemGroup>
 
 </Project>
