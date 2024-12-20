@@ -52,7 +52,7 @@ public readonly record struct Color
         }
 
         Console.WriteLine(
-            $"Failed to parse: [{text}] | not in chache, not in color dictionary, not hex, not ###,###,###");
+            $"Failed to parse: [{text}] | not in cache, not in color dictionary, not hex, not ###,###,###");
         this = White;
     }
 

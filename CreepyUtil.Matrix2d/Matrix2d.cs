@@ -1,16 +1,11 @@
 using System.Text;
 using static CreepyUtil.Direction;
+using static CreepyUtil.Pos;
 
 namespace CreepyUtil.Matrix2d;
 
 public class Matrix2d<T>
 {
-    public static readonly Pos[] SurroundDiagonal =
-        [(0, 0), (-1, 0), (-1, -1), (0, -1), (1, -1), (1, 0), (1, 1), (0, 1), (-1, 1)];
-
-    public static readonly Pos[] Surround =
-        [(0, 0), (-1, 0), (0, -1), (1, 0), (0, 1)];
-
     public readonly T[] Array;
     public readonly (int w, int h) Size;
     public readonly int TrueSize;
@@ -158,20 +153,20 @@ public class Matrix2d<T>
 
     public bool AnyAllCircularMarch(int x, int y, Func<T, bool> allConditional, int ring = 1)
     {
-        return March(x, y - ring, Up).All(allConditional)
-               || March(x + ring, y, Right).All(allConditional)
-               || March(x, y + ring, Down).All(allConditional)
-               || March(x - ring, y, Left).All(allConditional);
+        return March(x, y - ring, Direction.Up).All(allConditional)
+               || March(x + ring, y, Direction.Right).All(allConditional)
+               || March(x, y + ring, Direction.Down).All(allConditional)
+               || March(x - ring, y, Direction.Left).All(allConditional);
     }
 
     public long[] CircularMarchAndCountWhile(int x, int y, Func<T, bool> count, int ring = 1)
     {
         return
         [
-            MarchAndCountWhile(x, y - ring, Up, count),
-            MarchAndCountWhile(x + ring, y, Right, count),
-            MarchAndCountWhile(x, y + ring, Down, count),
-            MarchAndCountWhile(x - ring, y, Left, count)
+            MarchAndCountWhile(x, y - ring, Direction.Up, count),
+            MarchAndCountWhile(x + ring, y, Direction.Right, count),
+            MarchAndCountWhile(x, y + ring, Direction.Down, count),
+            MarchAndCountWhile(x - ring, y, Direction.Left, count)
         ];
     }
 
@@ -238,6 +233,8 @@ public class Matrix2d<T>
             return new Pos(x, y);
         }
 
+        
+        
         throw new ArgumentException("Could not find element");
     }
 

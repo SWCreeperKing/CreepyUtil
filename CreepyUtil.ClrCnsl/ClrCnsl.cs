@@ -1,21 +1,28 @@
-﻿using System.Text;
+﻿using System.Linq.Expressions;
+using System.Text;
 using System.Text.RegularExpressions;
 using static System.ConsoleKey;
 using static CreepyUtil.ClrCnsl.AsciiEffects;
+using static CreepyUtil.ClrCnsl.ColumnSetting;
 
 namespace CreepyUtil.ClrCnsl;
 
 public static class ClrCnsl
 {
     // public const char Block = '\u2588';
+    private static readonly Dictionary<string, string> CleanColorCache = [];
+
     public const int ListLeng = 11;
 
-    public static readonly Regex RegMatch = new(@"\[(?:(#|!)([a-zA-Z]+?|\d{1,3},\d{1,3},\d{1,3})|(@)(\w+?))\]",
+    public static readonly Regex RegMatch = new(@"\[(?:(#|!)([a-zA-Z]+?|\d{1,3},\d{1,3},\d{1,3})|(@|~)(\w+?))\]",
         RegexOptions.Compiled);
+
+    private static readonly string[] SourceArray = ["^", "v"];
 
     public static bool UseAscii;
 
-    private static readonly string[] SourceArray = ["^", "v"];
+    private static List<Task> WriteUpdates = [];
+    private static bool WhileWriteUpdates = true;
 
     public static void EnableAscii()
     {
@@ -65,7 +72,7 @@ public static class ClrCnsl
                 Math.Min(formattedOptions.Length - ListLeng, selected + 1 - (int)Math.Ceiling(ListLeng / 2f)));
             var isS = selected == rI;
             WriteLine(
-                $"{(isS ? "[#green] >[!darkgray][#cyan]" : "  [#blue]")}{formattedOptions[rI]}{(isS ? "[#green][!black]< " : "  ")}");
+                $"{(isS ? "[#green] >[!darkgray][#cyan]" : "  [#blue]")}{formattedOptions[rI]}{(isS ? "[#green][!r]< " : "  ")}");
         }
 
         if (isMore) WriteLine($"[#yellow]{moreLeng[1]}");
@@ -126,18 +133,18 @@ public static class ClrCnsl
             var rawValue = match.Groups[2].Value;
             ConsoleColor? color = rawValue == "r" ? null : Enum.Parse<ConsoleColor>(rawValue, true);
 
-            switch (isBack)
+
+            var stack = isBack ? backgroundColorStack : foregroundColorStack;
+            if (rawValue == "r")
             {
-                case true when color is null && backgroundColorStack.Count > 1:
-                    backgroundColorStack.Pop();
-                    break;
-                case true when color is not null:
-                    backgroundColorStack.Push(color.Value);
-                    break;
-                default:
-                    if (color is null && foregroundColorStack.Count > 1) foregroundColorStack.Pop();
-                    else if (color is not null) foregroundColorStack.Push(color.Value);
-                    break;
+                if (stack.Count > 0)
+                {
+                    stack.Pop();
+                }
+            }
+            else
+            {
+                stack.Push(color!.Value);
             }
 
             PeekColor();
@@ -160,6 +167,7 @@ public static class ClrCnsl
         var lastForeground = Color.White;
         var lastBackground = Color.Black;
 
+        PeekColor();
         Span<char> txt = text.ToCharArray();
         var index = 0;
 
@@ -179,47 +187,57 @@ public static class ClrCnsl
                 {
                     "r" => ResetNormal,
                     "b" => BoldOrIncreaseIntensity,
-                    "/b" => BoldOffOrDoubleUnderline,
                     "i" => Italic,
-                    "/i" => NotItalic,
                     "u" => Underline,
                     "uu" => BoldOffOrDoubleUnderline,
-                    "/u" or "/uu" => UnderlineOff,
                     "blink" => RapidBlink,
-                    "/blink" => BlinkOff,
                     "o" => Overlined,
-                    "/o" => NotOverlined,
                     "s" => CrossOut,
-                    "/s" => NotCrossOut,
                     "swap" => SwapFgAndBgColor,
-                    "/swap" => SwapFgAndBgColorOff,
+                    _ => NA
+                });
+            }
+            else if (match.Groups[3].Value == "~")
+            {
+                AsciiSet(match.Groups[4].Value.ToLower() switch
+                {
+                    "b" => BoldOffOrDoubleUnderline,
+                    "i" => NotItalic,
+                    "u" or "uu" => UnderlineOff,
+                    "blink" => BlinkOff,
+                    "o" => NotOverlined,
+                    "s" => NotCrossOut,
+                    "swap" => SwapFgAndBgColorOff,
                     _ => NA
                 });
             }
             else
             {
-                switch (isBack)
+                var stack = isBack ? backgroundColorStack : foregroundColorStack;
+                if (rawValue == "r")
                 {
-                    case true when rawValue == "r" && backgroundColorStack.Count > 1:
-                        backgroundColorStack.Pop();
-                        break;
-                    case true when rawValue != "r":
-                        backgroundColorStack.Push(rawValue.ToColor());
-                        break;
-                    default:
-                        if (rawValue == "r" && foregroundColorStack.Count > 1) foregroundColorStack.Pop();
-                        else if (rawValue != "r") foregroundColorStack.Push(rawValue.ToColor());
-                        break;
+                    if (stack.Count > 0)
+                    {
+                        stack.Pop();
+                    }
                 }
+                else
+                {
+                    stack.Push(rawValue.ToColor());
+                }
+
+                PeekColor();
             }
 
-            PeekColor();
             index = nIndex + matchValue.Length;
         }
 
-        if (index < txt.Length) Console.Write(txt[index..].ToString());
+        if (index < txt.Length)
+        {
+            Console.Write(txt[index..].ToString());
+        }
 
-        AsciiReset();
+        Console.Write("\e[0m");
         return;
 
         void PeekColor()
@@ -263,6 +281,47 @@ public static class ClrCnsl
     {
         WriteLine("\nPress any key to continue . . . ");
         GetKey();
+    }
+
+    public static void WriteBack(object text)
+    {
+        var pos = GetCursor();
+        Write(text);
+        SetCursor(pos);
+    }
+
+    public static void WriteUpdate(Func<object> action, bool newLine = true)
+    {
+        WriteUpdates.Add(Task.Run(async () =>
+        {
+            var pos = GetCursor();
+            while (WhileWriteUpdates)
+            {
+                SetCursor(pos);
+                if (newLine)
+                {
+                    WriteLine(action());
+                }
+                else
+                {
+                    Write(action());
+                }
+            }
+        }));
+    }
+
+    public static void EndWriteUpdates()
+    {
+        WhileWriteUpdates = false;
+        foreach (var task in WriteUpdates)
+        {
+            task.Wait();
+            Task.Delay(1).GetAwaiter().GetResult();
+            task.Dispose();
+        }
+
+        WriteUpdates.Clear();
+        WhileWriteUpdates = true;
     }
 
     public static bool YesNoChoice()
@@ -313,7 +372,13 @@ public static class ClrCnsl
     public static void WriteLine(object s) { Write($"{s}\n"); }
     public static void WriteLine(char c) { Console.WriteLine(c); }
     public static ConsoleKey GetKey() { return Console.ReadKey(true).Key; }
-    public static string CleanColors(string text) { return RegMatch.Replace(text, string.Empty); }
+
+    public static string CleanColors(string? text)
+    {
+        text ??= "";
+        if (CleanColorCache.TryGetValue(text, out var clean)) return clean;
+        return CleanColorCache[text] = RegMatch.Replace(text, string.Empty);
+    }
 
     public static (ConsoleColor, ConsoleColor) GetColors()
     {
@@ -326,6 +391,110 @@ public static class ClrCnsl
     public static void CursorVis(bool condition = true) { Console.CursorVisible = condition; }
     public static void Clr() { Console.Clear(); }
     public static void AsciiReset() { AsciiSet(ResetNormal); }
+
+    public static void Table(string title, bool drawBetween, ColumnSetting[] settings, params List<string[]> table)
+    {
+        var columns = settings.Length;
+        if (columns == 0) throw new ArgumentException("Table must have more than 0 columns");
+        if (table.Any(l => l.Length != columns))
+        {
+            throw new ArgumentException(
+                $"Table column amounts are inconsistent ({columns}) != ({string.Join(", ", table.GroupBy(l => l.Length).Select(g => g.Key))})");
+        }
+
+        var rowLengths = table.Aggregate(settings.Select(cs => CleanColors(cs.Name).Length).ToArray(), (a, b) =>
+        {
+            for (var i = 0; i < a.Length; i++)
+            {
+                a[i] = Math.Max(a[i], CleanColors(b[i]).Length);
+            }
+
+            return a;
+        });
+
+        table.Insert(0, settings.Select(cs => cs.Name).ToArray());
+
+        // var row = $"+{string.Join("+", rowLengths.Select(l => Repeat('-', l)))}+";
+
+        StringBuilder sb = new();
+        sb.Append('+');
+        for (var i = 0;
+             i < columns;
+             i++)
+        {
+            sb.Append(Repeat('-', rowLengths[i]));
+            if (i != columns - 1 && settings[i].SeparatorChar != ' ')
+            {
+                sb.Append('+');
+            }
+            else if (i != columns - 1)
+            {
+                sb.Append('-');
+            }
+        }
+
+        sb.Append('+');
+        var row = sb.ToString();
+
+        // +---- title ----+
+        Write("+");
+        WriteCenterPadding($"|{title}|", row.Length - 2, '-');
+
+        WriteLine("+");
+        for (var j = 0; j < table.Count; j++)
+        {
+            var line = table[j];
+            Write('|');
+            for (var i = 0; i < columns; i++)
+            {
+                switch (settings[i].Alignment)
+                {
+                    case Align.Left:
+                        WriteLeftPadding($"{line[i]}", rowLengths[i]);
+                        break;
+                    case Align.Center:
+                        WriteCenterPadding($"{line[i]}", rowLengths[i]);
+                        break;
+                    case Align.Right:
+                        WriteRightPadding($"{line[i]}", rowLengths[i]);
+                        break;
+                }
+
+                Write(i == columns - 1 ? "|" : settings[i].SeparatorChar);
+            }
+
+            if (j == 0 || j == table.Count - 1 || drawBetween)
+            {
+                WriteLine($"\n{row}");
+            }
+            else
+            {
+                WriteLine("");
+            }
+        }
+        // + [   ] | [   ] |
+        // +-------+-------+
+    }
+
+    public static void WriteRightPadding(string text, int length, char fill = ' ')
+    {
+        Write($"{Repeat(fill, length - CleanColors(text).Length)}{text}");
+    }
+
+    public static void WriteLeftPadding(string text, int length, char fill = ' ')
+    {
+        Write($"{text}{Repeat(fill, length - CleanColors(text).Length)}");
+    }
+
+    public static void WriteCenterPadding(string text, int length, char fill = ' ')
+    {
+        var leftOver = length - CleanColors(text).Length;
+        Write($"{Repeat(fill, (int)Math.Floor(leftOver / 2f))}{text}{Repeat(fill, (int)Math.Ceiling(leftOver / 2f))}");
+    }
+
+    public static string Space(int length) { return Repeat(' ', length); }
+    public static string Repeat(char c, int length) { return string.Join("", Enumerable.Repeat(c, length)); }
+    public static string Repeat(string s, int length) { return string.Join("", Enumerable.Repeat(s, length)); }
 
     public static void AsciiSet(AsciiEffects id)
     {
@@ -409,6 +578,20 @@ public enum AsciiEffects
     BgBrightMagenta = 105,
     BgBrightCyan = 106,
     BgBrightWhite = 107,
+}
+
+public readonly struct ColumnSetting(string name, Align align, char sepChar = '|')
+{
+    public enum Align
+    {
+        Left,
+        Center,
+        Right
+    }
+
+    public readonly string Name = name;
+    public readonly Align Alignment = align;
+    public readonly char SeparatorChar = sepChar;
 }
 
 public static class Helper
