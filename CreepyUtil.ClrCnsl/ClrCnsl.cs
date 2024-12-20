@@ -14,7 +14,7 @@ public static class ClrCnsl
 
     public const int ListLeng = 11;
 
-    public static readonly Regex RegMatch = new(@"\[(?:(#|!)([a-zA-Z]+?|\d{1,3},\d{1,3},\d{1,3})|(@|~)(\w+?))\]",
+    public static readonly Regex RegMatch = new(@"\[(?:(#|!)([a-zA-Z0-9]+?|\d{1,3},\d{1,3},\d{1,3})|(@|~)(\w+?))\]",
         RegexOptions.Compiled);
 
     private static readonly string[] SourceArray = ["^", "v"];
@@ -72,7 +72,7 @@ public static class ClrCnsl
                 Math.Min(formattedOptions.Length - ListLeng, selected + 1 - (int)Math.Ceiling(ListLeng / 2f)));
             var isS = selected == rI;
             WriteLine(
-                $"{(isS ? "[#green] >[!darkgray][#cyan]" : "  [#blue]")}{formattedOptions[rI]}{(isS ? "[#green][!r]< " : "  ")}");
+                $"{(isS ? "[#green] >[!darkgray][#cyan]" : "  [#blue]")}{formattedOptions[rI]}{(isS ? "[@r][#green]< " : "  ")}");
         }
 
         if (isMore) WriteLine($"[#yellow]{moreLeng[1]}");
@@ -443,24 +443,25 @@ public static class ClrCnsl
         WriteLine("+");
         for (var j = 0; j < table.Count; j++)
         {
+            var background = j % 2 == 0 ? "[!black]" : "[!1E1E1E]";
             var line = table[j];
-            Write('|');
+            Write($"{background}|");
             for (var i = 0; i < columns; i++)
             {
                 switch (settings[i].Alignment)
                 {
                     case Align.Left:
-                        WriteLeftPadding($"{line[i]}", rowLengths[i]);
+                        WriteLeftPadding($"{line[i]}", rowLengths[i], prefix:background);
                         break;
                     case Align.Center:
-                        WriteCenterPadding($"{line[i]}", rowLengths[i]);
+                        WriteCenterPadding($"{line[i]}", rowLengths[i], prefix:background);
                         break;
                     case Align.Right:
-                        WriteRightPadding($"{line[i]}", rowLengths[i]);
+                        WriteRightPadding($"{line[i]}", rowLengths[i], prefix:background);
                         break;
                 }
 
-                Write(i == columns - 1 ? "|" : settings[i].SeparatorChar);
+                Write($"{background}{(i == columns - 1 ? "|" : settings[i].SeparatorChar)}");
             }
 
             if (j == 0 || j == table.Count - 1 || drawBetween)
@@ -476,20 +477,20 @@ public static class ClrCnsl
         // +-------+-------+
     }
 
-    public static void WriteRightPadding(string text, int length, char fill = ' ')
+    public static void WriteRightPadding(string text, int length, char fill = ' ', string prefix = "")
     {
-        Write($"{Repeat(fill, length - CleanColors(text).Length)}{text}");
+        Write($"{prefix}{Repeat(fill, length - CleanColors(text).Length)}{text}");
     }
 
-    public static void WriteLeftPadding(string text, int length, char fill = ' ')
+    public static void WriteLeftPadding(string text, int length, char fill = ' ', string prefix = "")
     {
-        Write($"{text}{Repeat(fill, length - CleanColors(text).Length)}");
+        Write($"{prefix}{text}{Repeat(fill, length - CleanColors(text).Length)}");
     }
 
-    public static void WriteCenterPadding(string text, int length, char fill = ' ')
+    public static void WriteCenterPadding(string text, int length, char fill = ' ', string prefix = "")
     {
         var leftOver = length - CleanColors(text).Length;
-        Write($"{Repeat(fill, (int)Math.Floor(leftOver / 2f))}{text}{Repeat(fill, (int)Math.Ceiling(leftOver / 2f))}");
+        Write($"{prefix}{Repeat(fill, (int)Math.Floor(leftOver / 2f))}{text}{Repeat(fill, (int)Math.Ceiling(leftOver / 2f))}");
     }
 
     public static string Space(int length) { return Repeat(' ', length); }
