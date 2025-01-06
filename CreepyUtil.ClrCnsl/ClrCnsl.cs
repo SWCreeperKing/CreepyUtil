@@ -414,8 +414,6 @@ public static class ClrCnsl
 
         table.Insert(0, settings.Select(cs => cs.Name).ToArray());
 
-        // var row = $"+{string.Join("+", rowLengths.Select(l => Repeat('-', l)))}+";
-
         StringBuilder sb = new();
         sb.Append('+');
         for (var i = 0;

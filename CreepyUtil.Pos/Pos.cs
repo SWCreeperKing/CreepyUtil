@@ -5,11 +5,11 @@ namespace CreepyUtil;
 
 public readonly struct Pos(int x = 0, int y = 0)
 {
-    public static readonly Pos[] SurroundDiagonal =
-        [(0, 0), (-1, 0), (-1, -1), (0, -1), (1, -1), (1, 0), (1, 1), (0, 1), (-1, 1)];
-
     public static readonly Pos[] Surround =
         [(0, 0), (-1, 0), (0, -1), (1, 0), (0, 1)];
+
+    public static readonly Pos[] SurroundDiagonal =
+        [..Surround, (-1, -1), (1, -1), (1, 1), (-1, 1)];
 
     public static readonly Pos Zero = new();
     public static readonly Pos One = new(1, 1);
@@ -77,7 +77,7 @@ public readonly struct Pos(int x = 0, int y = 0)
     public static Pos operator /(Pos p1, int dxy) { return new Pos(p1.X / dxy, p1.Y / dxy); }
 
     public static Pos operator %(Pos p1, Pos p2) { return new Pos(p1.X % p2.X, p1.Y % p2.Y); }
-    
+
     public static bool operator ==(Pos p1, Pos p2) { return p1.X == p2.X && p1.Y == p2.Y; }
 
     public static bool operator !=(Pos p1, Pos p2) { return p1.X != p2.X || p1.Y != p2.Y; }

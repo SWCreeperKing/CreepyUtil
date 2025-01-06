@@ -232,8 +232,6 @@ public class Matrix2d<T>
             if (!find(t)) continue;
             return new Pos(x, y);
         }
-
-        
         
         throw new ArgumentException("Could not find element");
     }
