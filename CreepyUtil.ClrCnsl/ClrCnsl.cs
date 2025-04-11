@@ -385,9 +385,9 @@ public static class ClrCnsl
         return (Console.ForegroundColor, Console.BackgroundColor);
     }
 
-    public static Pos GetCursor() { return Console.GetCursorPosition(); }
+    public static Pos.Pos GetCursor() { return Console.GetCursorPosition(); }
     public static void SetCursor(int x = 0, int y = 0) { Console.SetCursorPosition(x, y); }
-    public static void SetCursor(Pos pos) { Console.SetCursorPosition(pos.X, pos.Y); }
+    public static void SetCursor(Pos.Pos pos) { Console.SetCursorPosition(pos.X, pos.Y); }
     public static void CursorVis(bool condition = true) { Console.CursorVisible = condition; }
     public static void Clr() { Console.Clear(); }
     public static void AsciiReset() { AsciiSet(ResetNormal); }

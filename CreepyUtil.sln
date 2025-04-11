@@ -16,6 +16,12 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CreepyUti.Fun", "CreepyUti.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tester", "Tester\Tester.csproj", "{BD5C4D4C-0986-43B4-AA1D-B76787361F6D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CreepyUtil.Archipelago", "CreepyUtil.Archipelago\CreepyUtil.Archipelago.csproj", "{A2368A72-8080-4F8D-A765-5A66B51C0306}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CreepyUtil.Archipelago.UIBackbone", "CreepyUtil.Archipelago.UIBackbone\CreepyUtil.Archipelago.UIBackbone.csproj", "{83CD379B-B032-40E9-A6A3-3F2519D52D66}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CreepyUtil.BackBone", "CreepyUtil.BackBone\CreepyUtil.BackBone.csproj", "{76DCFE94-7C39-47B8-9667-A867C5643B94}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -54,5 +60,17 @@ Global
 		{BD5C4D4C-0986-43B4-AA1D-B76787361F6D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BD5C4D4C-0986-43B4-AA1D-B76787361F6D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BD5C4D4C-0986-43B4-AA1D-B76787361F6D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A2368A72-8080-4F8D-A765-5A66B51C0306}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A2368A72-8080-4F8D-A765-5A66B51C0306}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A2368A72-8080-4F8D-A765-5A66B51C0306}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A2368A72-8080-4F8D-A765-5A66B51C0306}.Release|Any CPU.Build.0 = Release|Any CPU
+		{83CD379B-B032-40E9-A6A3-3F2519D52D66}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{83CD379B-B032-40E9-A6A3-3F2519D52D66}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{83CD379B-B032-40E9-A6A3-3F2519D52D66}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{83CD379B-B032-40E9-A6A3-3F2519D52D66}.Release|Any CPU.Build.0 = Release|Any CPU
+		{76DCFE94-7C39-47B8-9667-A867C5643B94}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{76DCFE94-7C39-47B8-9667-A867C5643B94}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{76DCFE94-7C39-47B8-9667-A867C5643B94}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{76DCFE94-7C39-47B8-9667-A867C5643B94}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

@@ -1,7 +1,7 @@
 using System.Collections.ObjectModel;
-using static CreepyUtil.Direction;
+using static CreepyUtil.Pos.Direction;
 
-namespace CreepyUtil;
+namespace CreepyUtil.Pos;
 
 public readonly struct Pos(int x = 0, int y = 0)
 {
