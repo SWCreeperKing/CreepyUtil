@@ -1,6 +1,5 @@
 using System.Text;
 using CreepyUtil.Pos;
-using static CreepyUtil.Pos.Direction;
 using static CreepyUtil.Pos.Pos;
 
 namespace CreepyUtil.Matrix2d;

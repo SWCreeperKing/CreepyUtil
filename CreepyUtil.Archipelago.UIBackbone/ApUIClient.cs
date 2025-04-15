@@ -4,10 +4,7 @@ using Archipelago.MultiClient.Net.Enums;
 using Archipelago.MultiClient.Net.Models;
 using Archipelago.MultiClient.Net.Packets;
 using CreepyUtil.BackBone;
-using CreepyUtil.BackBone.LoggerConsole;
-using CreepyUtil.BackBone.LoggerConsole.Commands;
 using ImGuiNET;
-using Newtonsoft.Json;
 using static Archipelago.MultiClient.Net.Enums.HintStatus;
 using static Archipelago.MultiClient.Net.Enums.ItemFlags;
 using Color = Raylib_cs.Color;
@@ -27,6 +24,8 @@ public class ApUIClient : ApClient
     public static Vector4 Purple = Color.Purple.ToV4();
     public static Vector4 DarkPurple = new(0.89f, 0.01f, 0.89f, 1f);
 
+    public Func<int, bool> IsPlayer;
+
     public Dictionary<HintStatus, string> HintStatusText =
         Enum.GetValues<HintStatus>().ToDictionary(hs => hs, hs => Enum.GetName(hs)!);
 
@@ -38,13 +37,15 @@ public class ApUIClient : ApClient
         [Avoid] = Red,
         [Priority] = Purple,
     };
-    
+
     public event EventHandler<string> OnDeathLinkReceived;
     public event EventHandler<MessagePacket> OnChatMessagePacket;
     public event EventHandler<MessagePart[]> OnItemLogPacket;
 
-    public ApUIClient(LoginInfo info, long gameUUID) : base(info, gameUUID)
+    public ApUIClient(bool connectPacket = true)
     {
+        IsPlayer = slot => slot == PlayerSlot;
+        if (!connectPacket) return;
         OnConnectionEvent += (_, client) =>
             client.Session.Socket.PacketReceived += OnPacketReceived;
     }
@@ -54,13 +55,14 @@ public class ApUIClient : ApClient
         switch (packet)
         {
             case ChatPrintJsonPacket message:
-                OnChatMessagePacket(this, new ChatMessagePacket(this, message));
+                OnChatMessagePacket(this, new ChatMessagePacket(this, IsPlayer, message));
                 break;
             case BouncedPacket bouncedPacket:
                 if (!bouncedPacket.Tags.Contains("DeathLink")) return;
                 var source = bouncedPacket.Data.TryGetValue("source", out var sourceToken)
                     ? sourceToken.ToString()
                     : "Unknown";
+                Console.WriteLine(source);
                 OnDeathLinkReceived(this, source);
                 break;
             case PrintJsonPacket updatePacket:
@@ -73,11 +75,11 @@ public class ApUIClient : ApClient
                 if (updatePacket.Data.First().Text!.StartsWith("[Hint]: "))
                 {
                     if (updatePacket.Data.Last().HintStatus!.Value == Found) break;
-                    OnChatMessagePacket(this, new HintMessagePacket(this, updatePacket.Data));
+                    OnChatMessagePacket(this, new HintMessagePacket(this, IsPlayer, updatePacket.Data));
                 }
                 else if (updatePacket.Data[1].Text is " found their " or " sent ")
                 {
-                    OnItemLogPacket(this, updatePacket.Data.Select(mp => new MessagePart(this, mp)).ToArray());
+                    OnItemLogPacket(this, updatePacket.Data.Select(mp => new MessagePart(this, IsPlayer, mp)).ToArray());
                 }
 
                 break;

@@ -13,6 +13,7 @@ public abstract class Messenger<TMessageType>
     
     public bool ScrollToBottom = true;
     public bool ShowInput = true;
+    public bool ToRefreshColors = false;
     private LimitedQueue<TMessageType> Scrollback = new();
     private string Input = "";
     private bool ToScroll;
@@ -24,7 +25,7 @@ public abstract class Messenger<TMessageType>
         ImGui.BeginChild("messenger", ShowInput ? wSize with { Y = wSize.Y - 50 * RlImgui.GetScale()} : wSize, ImGuiChildFlags.Borders, ImGuiWindowFlags.HorizontalScrollbar);
         {
             Scrollback.ForEach(RenderMessage);
-
+            
             if (ScrollToBottom && ToScroll)
             {
                 ImGui.SetScrollHereY();
@@ -41,7 +42,16 @@ public abstract class Messenger<TMessageType>
         try
         {
             if (!ShowInput) return;
-            if (!ImGui.InputText("Command", ref Input, 999, EnterReturnsTrue)) return;
+            try
+            {
+                if (!ImGui.InputText("Command", ref Input, 999, EnterReturnsTrue)) return;
+            }
+            catch
+            {
+                //ignore
+                return;
+            }
+
             OnSentMessage(Input);
             UpdateScrollBack();
             Input = "";

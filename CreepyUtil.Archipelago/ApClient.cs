@@ -9,32 +9,39 @@ using static Archipelago.MultiClient.Net.Enums.ItemFlags;
 
 namespace CreepyUtil.Archipelago;
 
-public class ApClient(LoginInfo info, long gameUUID)
+public class ApClient
 {
     public bool IsConnected { get; private set; } = false;
-    public long UUID { get; private set; } = gameUUID;
+    public long UUID { get; private set; }
     public ArchipelagoSession Session { get; private set; }
     public int PlayerSlot { get; private set; }
+    public string PlayerName { get; private set; }
     public string[] PlayerNames { get; private set; }
     public string[] PlayerGames { get; private set; }
     public ArchipelagoClientState[] PlayerStates { get; private set; }
-    public HashSet<Hint> Hints { get; private set; } = [];
+    public HashSet<Hint> Hints { get; set; } = [];
     public IReadOnlyDictionary<string, object> SlotData { get; private set; } = null!;
     public Dictionary<long, string> ItemIdToName { get; private set; } = [];
     public Dictionary<long, string> LocationIdToName { get; private set; } = [];
     public Dictionary<long, ScoutedItemInfo> MissingLocations { get; private set; } = [];
+    public bool HintsAwaitingUpdate { get; private set; } = false;
+    public bool HasPlayerListSetup = false;
 
-    private readonly LoginInfo Info = info;
+    private LoginInfo Info;
     private long gameUUID;
     private Hint[] WaitingHints = [];
-    private bool HintsAwaitingUpdate = false;
+    private int[] PlayerSlotArr;
 
-    public event EventHandler<ApClient> OnConnectionEvent;
+    public event EventHandler<ApClient>? OnConnectionEvent;
+    public event EventHandler<int>? OnPlayerStateChanged;
 
-    public string[]? TryConnect(string gameName, ItemsHandlingFlags flags, Version? version = null,
+    public string[]? TryConnect(LoginInfo info, long gameUUID, string gameName, ItemsHandlingFlags flags,
+        Version? version = null,
         string[]? tags = null,
         string? uuid = null, bool requestSlotData = true)
     {
+        UUID = gameUUID;
+        Info = info;
         try
         {
             Session = ArchipelagoSessionFactory.CreateSession(Info.Address, Info.Port);
@@ -44,15 +51,10 @@ public class ApClient(LoginInfo info, long gameUUID)
 
             if (!result.Successful) return ((LoginFailure)result).Errors;
             PlayerSlot = Session.Players.ActivePlayer.Slot;
+            PlayerSlotArr = [PlayerSlot];
+            PlayerName = Session.Players.ActivePlayer.Name;
             PlayerNames = Session.Players.AllPlayers.Select(player => player.Name!).ToArray();
             PlayerGames = Session.Players.AllPlayers.Select(player => player.Game).ToArray();
-            PlayerStates = PlayerNames.Select(_ => ArchipelagoClientState.ClientUnknown).ToArray();
-
-            for (var i = 0; i < PlayerNames.Length; i++)
-            {
-                var i1 = i;
-                Session.DataStorage.TrackClientStatus(state => PlayerStates[i1] = state, true, i1);
-            }
 
             Session.DataStorage.TrackHints(hints
                 =>
@@ -67,13 +69,30 @@ public class ApClient(LoginInfo info, long gameUUID)
                 SlotData = Session.DataStorage.GetSlotData();
             }
 
-            OnConnectionEvent(null, this);
+            OnConnectionEvent?.Invoke(null, this);
             IsConnected = true;
             return null;
         }
         catch (Exception e)
         {
-            return new LoginFailure(e.GetBaseException().Message).Errors;
+            return [e.Message, e.StackTrace!];
+        }
+    }
+
+    public void SetupPlayerList()
+    {
+        if (HasPlayerListSetup) return;
+        HasPlayerListSetup = true;
+        PlayerStates = PlayerNames.Select(_ => ArchipelagoClientState.ClientUnknown).ToArray();
+
+        for (var i = 0; i < PlayerNames.Length; i++)
+        {
+            var i1 = i;
+            Session.DataStorage.TrackClientStatus(state =>
+            {
+                PlayerStates[i1] = state;
+                OnPlayerStateChanged?.Invoke(null, i1);
+            }, true, i1);
         }
     }
 
@@ -84,7 +103,7 @@ public class ApClient(LoginInfo info, long gameUUID)
         {
             if (updateHintArr)
             {
-                Hints = WaitingHints.OrderHints(PlayerNames.Length, PlayerSlot);
+                Hints = WaitingHints.OrderHints(PlayerNames.Length, PlayerSlotArr);
             }
 
             hasAnythingChanged = true;
@@ -130,9 +149,19 @@ public class ApClient(LoginInfo info, long gameUUID)
                        Data = new Dictionary<string, JToken>
                        {
                            { "time", DateTime.UtcNow.ToUnixTimeStamp() },
-                           { "source", PlayerSlot },
+                           { "source", PlayerName },
                            { "cause", cause }
                        }
+                   })
+                  .GetAwaiter()
+                  .GetResult();
+
+    public void UpdateHint(int slot, long location, HintStatus priority)
+        => Session.Socket.SendPacketAsync(new UpdateHintPacket
+                   {
+                       Player = slot,
+                       Location = location,
+                       Status = priority
                    })
                   .GetAwaiter()
                   .GetResult();
@@ -179,7 +208,7 @@ public class ApClient(LoginInfo info, long gameUUID)
         set => Session.DataStorage[scope, key] = value;
     }
 
-    public void Say(string message) => Session.Say(message);
+    public void Say(string message) { Session.Say(message); }
 }
 
 public static class Helper
@@ -218,14 +247,14 @@ public static class Helper
         return sb.ToString().TrimEnd();
     }
 
-    public static HashSet<Hint> OrderHints(this IEnumerable<Hint> hints, int playerCount, params int[] PlayerSlots)
+    public static HashSet<Hint> OrderHints(this IEnumerable<Hint> hints, int playerCount, IEnumerable<int> PlayerSlots)
         => hints
-          .OrderBy(hint
+          .OrderBy(hint => hint.Status.SortNumber())
+          .ThenBy(hint => hint.ItemFlags.SortNumber())
+          .ThenBy(hint
                => PlayerSlots.Contains(hint.ReceivingPlayer)
                    ? playerCount + 1
                    : hint.ReceivingPlayer)
-          .ThenBy(hint => hint.Status.SortNumber())
-          .ThenBy(hint => hint.ItemFlags.SortNumber())
           .ThenBy(hint
                => PlayerSlots.Contains(hint.FindingPlayer)
                    ? playerCount + 1
