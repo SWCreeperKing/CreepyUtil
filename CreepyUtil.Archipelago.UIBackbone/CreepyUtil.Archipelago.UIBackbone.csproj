@@ -17,4 +17,13 @@
       <PackageReference Include="Raylib-cs" Version="7.0.1" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Reference Include="Archipelago.MultiClient.Net">
+        <HintPath>..\CreepyUtil.Archipelago\Lib\Archipelago.MultiClient.Net.dll</HintPath>
+      </Reference>
+      <Reference Include="Newtonsoft.Json">
+        <HintPath>..\CreepyUtil.Archipelago\Lib\Newtonsoft.Json.dll</HintPath>
+      </Reference>
+    </ItemGroup>
+
 </Project>

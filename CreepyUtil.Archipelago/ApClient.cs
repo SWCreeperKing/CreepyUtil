@@ -24,6 +24,7 @@ public class ApClient
     public Dictionary<long, string> ItemIdToName { get; private set; } = [];
     public Dictionary<long, string> LocationIdToName { get; private set; } = [];
     public Dictionary<long, ScoutedItemInfo> MissingLocations { get; private set; } = [];
+    public TimeSpan ServerTimeout = new(0, 0, 10);
     public bool HintsAwaitingUpdate { get; private set; } = false;
     public bool HasPlayerListSetup = false;
 
@@ -34,6 +35,7 @@ public class ApClient
 
     public event EventHandler<ApClient>? OnConnectionEvent;
     public event EventHandler<int>? OnPlayerStateChanged;
+    public event EventHandler? OnConnectionLost;
 
     public string[]? TryConnect(LoginInfo info, long gameUUID, string gameName, ItemsHandlingFlags flags,
         Version? version = null,
@@ -114,6 +116,13 @@ public class ApClient
         return hasAnythingChanged;
     }
 
+    public void UpdateConnection()
+    {
+        if (!IsConnected || Session.Socket.Connected) return;
+        IsConnected = false;
+        OnConnectionLost!.Invoke(this, EventArgs.Empty);
+    }
+
     public IEnumerable<ItemInfo?> GetOutstandingItems()
     {
         while (Session.Items.Any())
@@ -186,7 +195,6 @@ public class ApClient
         return location;
     }
 
-    public void SendMessage(string message) => Session.Say(message);
     public void Goal() => Session.SetGoalAchieved();
 
     public void TryDisconnect()
@@ -208,7 +216,13 @@ public class ApClient
         set => Session.DataStorage[scope, key] = value;
     }
 
-    public void Say(string message) { Session.Say(message); }
+    public void Say(string message)
+    {
+        if (!IsConnected) return;
+        var task = new Task(() => Session.Say(message));
+        task.Start();
+        Task.WaitAny([task],ServerTimeout);
+    }
 }
 
 public static class Helper

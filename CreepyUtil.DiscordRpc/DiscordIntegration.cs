@@ -14,6 +14,7 @@ public class DiscordIntegration
     public static Func<string>? LargeText;
     public static Func<string>? SmallImage;
     public static Func<string>? SmallText;
+    public static Action<string>? LogOut;
     
     private static bool InitDiscord;
     
@@ -62,11 +63,13 @@ public class DiscordIntegration
         catch
         {
             DiscordAlive = false;
+            LogOut?.Invoke("F");
 
             if (retry) // retry if fluke 
             {
+                LogOut?.Invoke("retrying");
                 CheckDiscord(appId, false);
-            }
+            } else LogOut?.Invoke("FFFFFFFFF");
         }
     }
     
@@ -84,6 +87,7 @@ public class DiscordIntegration
         catch (Exception e)
         {
             DiscordAlive = false;
+            LogOut?.Invoke($"Error: {e.Message}\n{e.StackTrace}");
         }
     }
 }
