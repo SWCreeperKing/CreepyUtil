@@ -199,6 +199,7 @@ public class ApClient
 
     public void TryDisconnect()
     {
+        IsConnected = false;
         try
         {
             Session.Socket.DisconnectAsync().GetAwaiter().GetResult();
