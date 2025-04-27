@@ -8,10 +8,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <Folder Include="Lib\" />
-    </ItemGroup>
-
-    <ItemGroup>
       <Reference Include="Archipelago.MultiClient.Net">
         <HintPath>Lib\Archipelago.MultiClient.Net.dll</HintPath>
       </Reference>
