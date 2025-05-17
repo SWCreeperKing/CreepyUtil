@@ -2,8 +2,11 @@
 using Archipelago.MultiClient.Net;
 using Archipelago.MultiClient.Net.Converters;
 using Archipelago.MultiClient.Net.Enums;
+using Archipelago.MultiClient.Net.Helpers;
 using Archipelago.MultiClient.Net.Models;
 using Archipelago.MultiClient.Net.Packets;
+using CreepyUtil.Archipelago.Commands;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using static Archipelago.MultiClient.Net.Enums.ItemFlags;
 
@@ -26,16 +29,27 @@ public class ApClient
     public Dictionary<long, ScoutedItemInfo> MissingLocations { get; private set; } = [];
     public TimeSpan ServerTimeout = new(0, 0, 10);
     public bool HintsAwaitingUpdate { get; private set; } = false;
+
+    public bool HasGoaled => Session?.DataStorage?.GetClientStatus() is ArchipelagoClientState.ClientGoal;
     public bool HasPlayerListSetup = false;
 
     private LoginInfo Info;
-    private long gameUUID;
+    private long GameUuid;
     private Hint[] WaitingHints = [];
     private int[] PlayerSlotArr;
+    private ApCommandHandler CommandHandler;
 
     public event EventHandler<ApClient>? OnConnectionEvent;
     public event EventHandler<int>? OnPlayerStateChanged;
     public event EventHandler? OnConnectionLost;
+    public event EventHandler<HintPrintJsonPacket>? OnHintPrintJsonPacketReceived; 
+    public event EventHandler<ChatPrintJsonPacket>? OnChatPrintPacketReceived;
+    public event EventHandler<BouncedPacket>? OnBouncedPacketReceived; 
+    public event EventHandler<BouncedPacket>? OnDeathLinkPacketReceived; 
+    public event EventHandler<PrintJsonPacket>? OnPrintJsonPacketReceived; 
+    public event EventHandler<PrintJsonPacket>? OnServerMessagePacketReceived; 
+    public event EventHandler<PrintJsonPacket>? OnItemLogPacketReceived;
+    public event ArchipelagoSocketHelperDelagates.ErrorReceivedHandler? OnConnectionErrorReceived;
 
     public string[]? TryConnect(LoginInfo info, long gameUUID, string gameName, ItemsHandlingFlags flags,
         Version? version = null,
@@ -47,6 +61,7 @@ public class ApClient
         try
         {
             Session = ArchipelagoSessionFactory.CreateSession(Info.Address, Info.Port);
+            Session.Socket.ErrorReceived += (e, s) => OnConnectionErrorReceived?.Invoke(e, s);
 
             var result = Session.TryConnectAndLogin(gameName, Info.Slot, flags, version, tags, uuid, Info.Password,
                 requestSlotData);
@@ -65,6 +80,49 @@ public class ApClient
                 HintsAwaitingUpdate = true;
             });
 
+            CommandHandler = new ApCommandHandler(this);
+            Session.Socket.PacketReceived += packet =>
+            {
+                switch (packet)
+                {
+                    case HintPrintJsonPacket hintPacket:
+                        OnHintPrintJsonPacketReceived?.Invoke(this, hintPacket);
+                        break;
+                    case ChatPrintJsonPacket message:
+                        OnChatPrintPacketReceived?.Invoke(this, message);
+
+                        if (message.Message.StartsWith($"@{PlayerName} "))
+                        {
+                            CommandHandler.RunCommand(message, message.Message.Replace($"@{PlayerName} ", "").Split(" "));
+                        }
+                        
+                        break;
+                    case BouncedPacket bouncedPacket:
+                        OnBouncedPacketReceived?.Invoke(this, bouncedPacket);
+                        if (bouncedPacket.Tags.Contains("DeathLink"))
+                        {
+                            OnDeathLinkPacketReceived?.Invoke(this, bouncedPacket);
+                        }
+                        
+                        break;
+                    case PrintJsonPacket printPacket:
+                        OnPrintJsonPacketReceived?.Invoke(this, printPacket);
+                        if (printPacket.Data.Length == 1)
+                        {
+                            OnServerMessagePacketReceived?.Invoke(this, printPacket);
+                            return;
+                        }
+
+                        if (printPacket.Data.Length < 2) break;
+                        if (printPacket.Data[1].Text is " found their " or " sent ")
+                        {
+                            OnItemLogPacketReceived?.Invoke(this, printPacket);
+                        }
+
+                        break;
+                }
+            };
+            
             ReloadLocations();
             if (requestSlotData)
             {
@@ -131,7 +189,10 @@ public class ApClient
         }
     }
 
-    public void SendLocation(long id)
+    public bool SendLocation(long id)
+        => IsConnected && new Task(() => TrySendLocation(id)).RunWithTimeout(ServerTimeout);
+
+    private void TrySendLocation(long id)
     {
         if (MissingLocations.Count == 0) return;
         var loc = MissingLocations[id];
@@ -152,18 +213,23 @@ public class ApClient
     }
 
     public void SendDeathLink(string cause)
-        => Session.Socket.SendPacketAsync(new BouncePacket
-                   {
-                       Tags = new List<string> { "DeathLink" },
-                       Data = new Dictionary<string, JToken>
-                       {
-                           { "time", DateTime.UtcNow.ToUnixTimeStamp() },
-                           { "source", PlayerName },
-                           { "cause", cause }
-                       }
-                   })
-                  .GetAwaiter()
-                  .GetResult();
+        => new Task(() =>
+            {
+                lock (Session)
+                {
+                    Session.Socket.SendPacketAsync(new BouncePacket
+                    {
+                        Tags = ["DeathLink"],
+                        Data = new Dictionary<string, JToken>
+                        {
+                            { "time", DateTime.UtcNow.ToUnixTimeStamp() },
+                            { "source", PlayerName },
+                            { "cause", cause }
+                        }
+                    });
+                }
+            })
+           .RunWithTimeout(ServerTimeout);
 
     public void UpdateHint(int slot, long location, HintStatus priority)
         => Session.Socket.SendPacketAsync(new UpdateHintPacket
@@ -202,7 +268,14 @@ public class ApClient
         IsConnected = false;
         try
         {
-            Session.Socket.DisconnectAsync().GetAwaiter().GetResult();
+            Task.Run(() =>
+                 {
+                     lock (Session)
+                     {
+                         Session.Socket.DisconnectAsync();
+                     }
+                 })
+                .RunWithTimeout(ServerTimeout);
             Session = null!;
         }
         catch
@@ -211,23 +284,46 @@ public class ApClient
         }
     }
 
-    public DataStorageElement? this[string key, Scope scope = Scope.Slot]
+    public T? GetFromStorage<T>(string key, Scope scope = Scope.Slot, T? def = default)
     {
-        get => Session.DataStorage[scope, key];
-        set => Session.DataStorage[scope, key] = value;
+        T? data;
+        try
+        {
+            data = JsonConvert.DeserializeObject<T>(Session.DataStorage[scope, key].To<string>())!;
+        }
+        catch
+        {
+            //ignore
+            data = def;
+        }
+
+        return data;
     }
 
-    public void Say(string message)
-    {
-        if (!IsConnected) return;
-        var task = new Task(() => Session.Say(message));
-        task.Start();
-        Task.WaitAny([task],ServerTimeout);
-    }
+    public void SendToStorage<T>(string key, T data, Scope scope = Scope.Slot)
+        => Session.DataStorage[scope, key] = JsonConvert.SerializeObject(data);
+
+    public bool Say(string message)
+        => IsConnected && new Task(() =>
+        {
+            lock (Session)
+            {
+                Session.Say(message);
+            }
+        }).RunWithTimeout(ServerTimeout);
+    
+    public void RegisterCommand(IApCommandInterface command) => CommandHandler.RegisterCommand(command);
+    public void DeregisterCommand(IApCommandInterface command) => CommandHandler.DeregisterCommand(command);
 }
 
 public static class Helper
 {
+    public static bool RunWithTimeout(this Task task, TimeSpan timeout)
+    {
+        task.Start();
+        return Task.WaitAny([task], timeout) != -1;
+    }
+
     public static int SortNumber(this HintStatus status)
         => status switch
         {
@@ -245,7 +341,7 @@ public static class Helper
         return item.HasFlag(NeverExclude) ? 1 : 2;
     }
 
-    public static string GetAsTime(this double time)
+    public static string GetAsTime(this double time, bool staticSecEnding = true)
     {
         var sec = time % 60;
         time = (float)Math.Floor(time / 60f);
@@ -258,7 +354,17 @@ public static class Helper
         if (days > 0) sb.Append(days).Append("d ");
         if (hour > 0) sb.Append(hour).Append("hr ");
         if (min > 0) sb.Append(min).Append("m ");
-        if (sec > 0) sb.Append($"{sec:#0.00}").Append("s ");
+        switch (sec)
+        {
+            case > 0 when staticSecEnding:
+                sb.Append($"{sec:#0.00}").Append("s ");
+                break;
+            case > 0:
+                sb.Append($"{sec:#0.##}").Append("s ");
+                break;
+        }
+
+        if (sb.Length == 0) sb.Append("0s ");
         return sb.ToString().TrimEnd();
     }
 
@@ -276,4 +382,16 @@ public static class Helper
                    : hint.FindingPlayer)
           .ThenBy(hint => hint.LocationId)
           .ToHashSet();
+
+    public static T? SafeTo<T>(this DataStorageElement? element, T? def = default)
+    {
+        try
+        {
+            return element!.To<T>() ?? def;
+        }
+        catch
+        {
+            return def;
+        }
+    }
 }
