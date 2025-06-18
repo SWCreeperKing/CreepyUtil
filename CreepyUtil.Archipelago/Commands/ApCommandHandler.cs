@@ -21,7 +21,7 @@ public class ApCommandHandler(ApClient client)
             return;
         }
         
-        command.RunCommand(Client, message, split.Length == 0 ? [] : split[1..]);
+        command.RunCommand(Client, message, split.Length == 0 ? [] : split.Skip(1).ToArray());
     }
 
     public void RegisterCommand(IApCommandInterface command) => _Commands.Add(command.Command, command);

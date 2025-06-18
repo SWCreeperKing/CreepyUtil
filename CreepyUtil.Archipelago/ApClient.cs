@@ -93,7 +93,7 @@ public class ApClient
 
                         if (message.Message.StartsWith($"@{PlayerName} "))
                         {
-                            CommandHandler.RunCommand(message, message.Message.Replace($"@{PlayerName} ", "").Split(" "));
+                            CommandHandler.RunCommand(message, message.Message.Replace($"@{PlayerName} ", "").Split(' '));
                         }
                         
                         break;
@@ -206,9 +206,9 @@ public class ApClient
         var scoutedLocations = Session.Locations.ScoutLocationsAsync(missing).Result!;
         MissingLocations.Clear();
 
-        foreach (var (id, location) in scoutedLocations.OrderBy(loc => loc.Key))
+        foreach (var kv in scoutedLocations.OrderBy(loc => loc.Key))
         {
-            MissingLocations[id - UUID] = location;
+            MissingLocations[kv.Key - UUID] = kv.Value;
         }
     }
 
