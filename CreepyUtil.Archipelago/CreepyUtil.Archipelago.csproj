@@ -5,7 +5,6 @@
         <Nullable>enable</Nullable>
         <LangVersion>12</LangVersion>
         <TargetFrameworks>net8.0;net48</TargetFrameworks>
-        <FinishedBuilds>0</FinishedBuilds>
     </PropertyGroup>
 
     <ItemGroup>
@@ -24,7 +23,7 @@
     </ItemGroup>
 
     <Target Name="AfterBuild8" AfterTargets="Build" Condition="'$(TargetFramework)' == 'net8.0'">
-        <Exec WorkingDirectory="E:\coding projects\C#\CreepyUtil\CreepyUtil.Archipelago\bin\Debug\net8.0" Command="ilrepack /out:BundledApClient.dll CreepyUtil.Archipelago.dll Newtonsoft.Json.dll Archipelago.MultiClient.Net.dll"/>
+        <Exec WorkingDirectory="E:\coding projects\C#\CreepyUtil\CreepyUtil.Archipelago\bin\Debug\net8.0" Command="ilrepack /internalizeassembly:Newtonsoft.Json.dll /out:BundledApClient.dll CreepyUtil.Archipelago.dll Newtonsoft.Json.dll Archipelago.MultiClient.Net.dll"/>
         <Copy SourceFiles="E:\coding projects\C#\CreepyUtil\CreepyUtil.Archipelago\bin\Debug\net8.0/BundledApClient.dll" DestinationFolder="D:\Programs\steam\steamapps\common\Placid Plastic Duck Simulator\mod dev\PPDSAP\lib"/>
         <Copy SourceFiles="E:\coding projects\C#\CreepyUtil\CreepyUtil.Archipelago\bin\Debug\net8.0/BundledApClient.dll" DestinationFolder="D:\Programs\steam\steamapps\common\Placid Plastic Duck Simulator\BepInEx\plugins\SW_CreeperKing.ArchipelagoMod"/>
         <Copy SourceFiles="E:\coding projects\C#\CreepyUtil\CreepyUtil.Archipelago\bin\Debug\net8.0/BundledApClient.dll" DestinationFolder="E:\coding projects\Godot\archipelagomultitextclient\Lib"/>
@@ -32,7 +31,7 @@
     </Target>
 
     <Target Name="AfterBuild48" AfterTargets="Build" Condition="'$(TargetFramework)' == 'net48'">
-        <Exec WorkingDirectory="E:\coding projects\C#\CreepyUtil\CreepyUtil.Archipelago\bin\Debug\net48" Command="ilrepack /out:BundledApClient.dll CreepyUtil.Archipelago.dll Newtonsoft.Json.dll Archipelago.MultiClient.Net.dll"/>
+        <Exec WorkingDirectory="E:\coding projects\C#\CreepyUtil\CreepyUtil.Archipelago\bin\Debug\net48" Command="ilrepack /internalizeassembly:Newtonsoft.Json.dll /out:BundledApClient.dll CreepyUtil.Archipelago.dll Newtonsoft.Json.dll Archipelago.MultiClient.Net.dll"/>
         <Copy SourceFiles="E:\coding projects\C#\CreepyUtil\CreepyUtil.Archipelago\bin\Debug\net48/BundledApClient.dll" DestinationFolder="F:\SteamLibrary\steamapps\common\PowerWash Simulator\mod dev\PowerwashSimAP\lib"/>
         <Copy SourceFiles="E:\coding projects\C#\CreepyUtil\CreepyUtil.Archipelago\bin\Debug\net48/BundledApClient.dll" DestinationFolder="F:\SteamLibrary\steamapps\common\PowerWash Simulator\BepInEx\plugins\SW_CreeperKing.ArchipelagoMod"/>
     </Target>

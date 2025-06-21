@@ -30,8 +30,9 @@ public class ApClient
     public TimeSpan ServerTimeout = new(0, 0, 10);
     public bool HintsAwaitingUpdate { get; private set; } = false;
 
-    public bool HasGoaled => Session?.DataStorage?.GetClientStatus() is ArchipelagoClientState.ClientGoal;
+    public bool HasGoaled => HasGoaledChached || Session?.DataStorage?.GetClientStatus() is ArchipelagoClientState.ClientGoal;
     public bool HasPlayerListSetup = false;
+    private bool HasGoaledChached = false;
 
     private LoginInfo Info;
     private long GameUuid;
@@ -192,6 +193,9 @@ public class ApClient
     public bool SendLocation(long id)
         => IsConnected && new Task(() => TrySendLocation(id)).RunWithTimeout(ServerTimeout);
 
+    public bool SendLocations(IEnumerable<long> ids)
+        => IsConnected && new Task(() => TrySendLocations(ids)).RunWithTimeout(ServerTimeout);
+    
     private void TrySendLocation(long id)
     {
         if (MissingLocations.Count == 0) return;
@@ -200,6 +204,17 @@ public class ApClient
         MissingLocations.Remove(id);
     }
 
+    private void TrySendLocations(IEnumerable<long> ids)
+    {
+        if (MissingLocations.Count == 0) return;
+        var locs = ids.Select(id => MissingLocations[id].LocationId).ToArray();
+        Session.Locations.CompleteLocationChecks(locs);
+        foreach (var loc in locs)
+        {
+            MissingLocations.Remove(loc);
+        }
+    }
+    
     public void ReloadLocations()
     {
         var missing = Session.Locations.AllMissingLocations.ToArray();
@@ -261,7 +276,12 @@ public class ApClient
         return location;
     }
 
-    public void Goal() => Session.SetGoalAchieved();
+    public void Goal()
+    {
+        if (HasGoaledChached) return;
+        Session.SetGoalAchieved();
+        HasGoaledChached = true;
+    }
 
     public void TryDisconnect()
     {
