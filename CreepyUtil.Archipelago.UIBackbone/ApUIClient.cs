@@ -46,7 +46,7 @@ public class ApUIClient : ApClient
     {
         IsPlayer = slot => slot == PlayerSlot;
         if (!connectPacket) return;
-        OnConnectionEvent += (_, client) =>
+        OnConnectionEvent += client =>
             client.Session.Socket.PacketReceived += OnPacketReceived;
     }
 

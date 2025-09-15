@@ -16,7 +16,8 @@ public class ApClient
 {
     public bool IsConnected { get; private set; } = false;
     public long UUID { get; private set; }
-    public ArchipelagoSession Session { get; private set; }
+    public ArchipelagoSession? Session { get; private set; }
+    public IArchipelagoSocketHelper? Socket { get; private set; }
     public int PlayerSlot { get; private set; }
     public string PlayerName { get; private set; }
     public string[] PlayerNames { get; private set; }
@@ -30,7 +31,9 @@ public class ApClient
     public TimeSpan ServerTimeout = new(0, 0, 10);
     public bool HintsAwaitingUpdate { get; private set; } = false;
 
-    public bool HasGoaled => HasGoaledChached || Session?.DataStorage?.GetClientStatus() is ArchipelagoClientState.ClientGoal;
+    public bool HasGoaled
+        => HasGoaledChached || Session?.DataStorage?.GetClientStatus() is ArchipelagoClientState.ClientGoal;
+
     public bool HasPlayerListSetup = false;
     private bool HasGoaledChached = false;
 
@@ -40,16 +43,16 @@ public class ApClient
     private int[] PlayerSlotArr;
     private ApCommandHandler CommandHandler;
 
-    public event EventHandler<ApClient>? OnConnectionEvent;
-    public event EventHandler<int>? OnPlayerStateChanged;
-    public event EventHandler? OnConnectionLost;
-    public event EventHandler<HintPrintJsonPacket>? OnHintPrintJsonPacketReceived; 
-    public event EventHandler<ChatPrintJsonPacket>? OnChatPrintPacketReceived;
-    public event EventHandler<BouncedPacket>? OnBouncedPacketReceived; 
-    public event EventHandler<BouncedPacket>? OnDeathLinkPacketReceived; 
-    public event EventHandler<PrintJsonPacket>? OnPrintJsonPacketReceived; 
-    public event EventHandler<PrintJsonPacket>? OnServerMessagePacketReceived; 
-    public event EventHandler<PrintJsonPacket>? OnItemLogPacketReceived;
+    public event Action<ApClient>? OnConnectionEvent;
+    public event Action<int>? OnPlayerStateChanged;
+    public event Action? OnConnectionLost;
+    public event Action<HintPrintJsonPacket>? OnHintPrintJsonPacketReceived;
+    public event Action<ChatPrintJsonPacket>? OnChatPrintPacketReceived;
+    public event Action<BouncedPacket>? OnBouncedPacketReceived;
+    public event Action<BouncedPacket>? OnDeathLinkPacketReceived;
+    public event Action<PrintJsonPacket>? OnPrintJsonPacketReceived;
+    public event Action<PrintJsonPacket>? OnServerMessagePacketReceived;
+    public event Action<PrintJsonPacket>? OnItemLogPacketReceived;
     public event ArchipelagoSocketHelperDelagates.ErrorReceivedHandler? OnConnectionErrorReceived;
 
     public string[]? TryConnect(LoginInfo info, long gameUUID, string gameName, ItemsHandlingFlags flags,
@@ -62,7 +65,7 @@ public class ApClient
         try
         {
             Session = ArchipelagoSessionFactory.CreateSession(Info.Address, Info.Port);
-            Session.Socket.ErrorReceived += (e, s) => OnConnectionErrorReceived?.Invoke(e, s);
+            (Socket = Session.Socket).ErrorReceived += (e, s) => OnConnectionErrorReceived?.Invoke(e, s);
 
             var result = Session.TryConnectAndLogin(gameName, Info.Slot, flags, version, tags, uuid, Info.Password,
                 requestSlotData);
@@ -87,50 +90,51 @@ public class ApClient
                 switch (packet)
                 {
                     case HintPrintJsonPacket hintPacket:
-                        OnHintPrintJsonPacketReceived?.Invoke(this, hintPacket);
+                        OnHintPrintJsonPacketReceived?.Invoke(hintPacket);
                         break;
                     case ChatPrintJsonPacket message:
-                        OnChatPrintPacketReceived?.Invoke(this, message);
+                        OnChatPrintPacketReceived?.Invoke(message);
 
                         if (message.Message.StartsWith($"@{PlayerName} "))
                         {
-                            CommandHandler.RunCommand(message, message.Message.Replace($"@{PlayerName} ", "").Split(' '));
+                            CommandHandler.RunCommand(message,
+                                message.Message.Replace($"@{PlayerName} ", "").Split(' '));
                         }
-                        
+
                         break;
                     case BouncedPacket bouncedPacket:
-                        OnBouncedPacketReceived?.Invoke(this, bouncedPacket);
+                        OnBouncedPacketReceived?.Invoke(bouncedPacket);
                         if (bouncedPacket.Tags.Contains("DeathLink"))
                         {
-                            OnDeathLinkPacketReceived?.Invoke(this, bouncedPacket);
+                            OnDeathLinkPacketReceived?.Invoke(bouncedPacket);
                         }
-                        
+
                         break;
                     case PrintJsonPacket printPacket:
-                        OnPrintJsonPacketReceived?.Invoke(this, printPacket);
+                        OnPrintJsonPacketReceived?.Invoke(printPacket);
                         if (printPacket.Data.Length == 1)
                         {
-                            OnServerMessagePacketReceived?.Invoke(this, printPacket);
+                            OnServerMessagePacketReceived?.Invoke(printPacket);
                             return;
                         }
 
                         if (printPacket.Data.Length < 2) break;
                         if (printPacket.Data[1].Text is " found their " or " sent ")
                         {
-                            OnItemLogPacketReceived?.Invoke(this, printPacket);
+                            OnItemLogPacketReceived?.Invoke(printPacket);
                         }
 
                         break;
                 }
             };
-            
+
             ReloadLocations();
             if (requestSlotData)
             {
                 SlotData = Session.DataStorage.GetSlotData();
             }
 
-            OnConnectionEvent?.Invoke(null, this);
+            OnConnectionEvent?.Invoke(this);
             IsConnected = true;
             return null;
         }
@@ -149,10 +153,10 @@ public class ApClient
         for (var i = 0; i < PlayerNames.Length; i++)
         {
             var i1 = i;
-            Session.DataStorage.TrackClientStatus(state =>
+            Session?.DataStorage.TrackClientStatus(state =>
             {
                 PlayerStates[i1] = state;
-                OnPlayerStateChanged?.Invoke(null, i1);
+                OnPlayerStateChanged?.Invoke(i1);
             }, true, i1);
         }
     }
@@ -177,48 +181,46 @@ public class ApClient
 
     public void UpdateConnection()
     {
-        if (!IsConnected || Session.Socket.Connected) return;
+        if (!IsConnected || Session!.Socket.Connected) return;
         IsConnected = false;
-        OnConnectionLost!.Invoke(this, EventArgs.Empty);
+        OnConnectionLost!.Invoke();
     }
 
     public IEnumerable<ItemInfo?> GetOutstandingItems()
     {
-        while (Session.Items.Any())
-        {
-            yield return Session.Items.DequeueItem();
-        }
+        while (Session!.Items.Any()) yield return Session.Items.DequeueItem();
     }
 
     public bool SendLocation(long id)
-        => IsConnected && new Task(() => TrySendLocation(id)).RunWithTimeout(ServerTimeout);
-
-    public bool SendLocations(IEnumerable<long> ids)
-        => IsConnected && new Task(() => TrySendLocations(ids)).RunWithTimeout(ServerTimeout);
-    
-    private void TrySendLocation(long id)
     {
-        if (MissingLocations.Count == 0) return;
-        var loc = MissingLocations[id];
-        Session.Locations.CompleteLocationChecks(loc.LocationId);
-        MissingLocations.Remove(id);
-    }
-
-    private void TrySendLocations(IEnumerable<long> ids)
-    {
-        if (MissingLocations.Count == 0) return;
-        var locs = ids.Select(id => MissingLocations[id].LocationId).ToArray();
-        Session.Locations.CompleteLocationChecks(locs);
-        foreach (var loc in locs)
+        return IsConnected && new Task(() =>
         {
-            MissingLocations.Remove(loc);
-        }
+            if (MissingLocations.Count == 0) return;
+            var loc = MissingLocations[id];
+            Session?.Locations.CompleteLocationChecks(loc.LocationId);
+            MissingLocations.Remove(id);
+        }).RunWithTimeout(ServerTimeout);
     }
-    
+
+    public bool SendLocations(params long[] ids)
+    {
+        return IsConnected && new Task(() =>
+        {
+            if (MissingLocations.Count == 0) return;
+            var locs = ids.Select(id => MissingLocations[id].LocationId).ToArray();
+            Session?.Locations.CompleteLocationChecks(locs);
+            foreach (var loc in ids)
+            {
+                MissingLocations.Remove(loc);
+            }
+        }).RunWithTimeout(ServerTimeout);
+    }
+
+
     public void ReloadLocations()
     {
-        var missing = Session.Locations.AllMissingLocations.ToArray();
-        var scoutedLocations = Session.Locations.ScoutLocationsAsync(missing).Result!;
+        var missing = Session?.Locations.AllMissingLocations.ToArray()!;
+        var scoutedLocations = Session?.Locations.ScoutLocationsAsync(missing).Result!;
         MissingLocations.Clear();
 
         foreach (var kv in scoutedLocations.OrderBy(loc => loc.Key))
@@ -228,11 +230,12 @@ public class ApClient
     }
 
     public void SendDeathLink(string cause)
-        => new Task(() =>
+    {
+        new Task(() =>
             {
-                lock (Session)
+                lock (Session!)
                 {
-                    Session.Socket.SendPacketAsync(new BouncePacket
+                    Session?.Socket.SendPacketAsync(new BouncePacket
                     {
                         Tags = ["DeathLink"],
                         Data = new Dictionary<string, JToken>
@@ -245,22 +248,25 @@ public class ApClient
                 }
             })
            .RunWithTimeout(ServerTimeout);
+    }
 
     public void UpdateHint(int slot, long location, HintStatus priority)
-        => Session.Socket.SendPacketAsync(new UpdateHintPacket
-                   {
-                       Player = slot,
-                       Location = location,
-                       Status = priority
-                   })
-                  .GetAwaiter()
-                  .GetResult();
+    {
+        Session?.Socket.SendPacketAsync(new UpdateHintPacket
+                 {
+                     Player = slot,
+                     Location = location,
+                     Status = priority
+                 })
+                .GetAwaiter()
+                .GetResult();
+    }
 
     public string ItemIdToItemName(long id, int playerSlot)
     {
         if (!ItemIdToName.TryGetValue(id, out var itemName))
         {
-            itemName = ItemIdToName[id] = Session.Items.GetItemName(id, PlayerGames[playerSlot]);
+            itemName = ItemIdToName[id] = Session!.Items.GetItemName(id, PlayerGames[playerSlot]);
         }
 
         return itemName;
@@ -270,7 +276,7 @@ public class ApClient
     {
         if (!LocationIdToName.TryGetValue(id, out var location))
         {
-            location = LocationIdToName[id] = Session.Locations.GetLocationNameFromId(id, PlayerGames[playerSlot]);
+            location = LocationIdToName[id] = Session!.Locations.GetLocationNameFromId(id, PlayerGames[playerSlot]);
         }
 
         return location;
@@ -279,29 +285,22 @@ public class ApClient
     public void Goal()
     {
         if (HasGoaledChached) return;
-        Session.SetGoalAchieved();
+        Session?.SetGoalAchieved();
         HasGoaledChached = true;
     }
 
     public void TryDisconnect()
     {
         IsConnected = false;
-        try
-        {
-            Task.Run(() =>
+        Task.Run(() =>
+             {
+                 lock (Session!)
                  {
-                     lock (Session)
-                     {
-                         Session.Socket.DisconnectAsync();
-                     }
-                 })
-                .RunWithTimeout(ServerTimeout);
-            Session = null!;
-        }
-        catch
-        {
-            //ignored
-        }
+                     Session.Socket.DisconnectAsync();
+                 }
+             })
+            .RunWithTimeout(ServerTimeout);
+        Session = null;
     }
 
     public T? GetFromStorage<T>(string key, Scope scope = Scope.Slot, T? def = default)
@@ -309,7 +308,7 @@ public class ApClient
         T? data;
         try
         {
-            data = JsonConvert.DeserializeObject<T>(Session.DataStorage[scope, key].To<string>())!;
+            data = JsonConvert.DeserializeObject<T>(Session!.DataStorage[scope, key].To<string>())!;
         }
         catch
         {
@@ -321,17 +320,19 @@ public class ApClient
     }
 
     public void SendToStorage<T>(string key, T data, Scope scope = Scope.Slot)
-        => Session.DataStorage[scope, key] = JsonConvert.SerializeObject(data);
+        => Session!.DataStorage[scope, key] = JsonConvert.SerializeObject(data);
 
     public bool Say(string message)
-        => IsConnected && new Task(() =>
+    {
+        return IsConnected && new Task(() =>
         {
-            lock (Session)
+            lock (Session!)
             {
                 Session.Say(message);
             }
         }).RunWithTimeout(ServerTimeout);
-    
+    }
+
     public void RegisterCommand(IApCommandInterface command) => CommandHandler.RegisterCommand(command);
     public void DeregisterCommand(IApCommandInterface command) => CommandHandler.DeregisterCommand(command);
 }
@@ -345,14 +346,16 @@ public static class Helper
     }
 
     public static int SortNumber(this HintStatus status)
-        => status switch
+    {
+        return status switch
         {
             HintStatus.Found => 0,
-            HintStatus.Unspecified => 3,
             HintStatus.NoPriority => 2,
             HintStatus.Avoid => 4,
             HintStatus.Priority => 1,
+            _ => 3,
         };
+    }
 
     public static int SortNumber(this ItemFlags item)
     {
@@ -389,19 +392,21 @@ public static class Helper
     }
 
     public static HashSet<Hint> OrderHints(this IEnumerable<Hint> hints, int playerCount, IEnumerable<int> PlayerSlots)
-        => hints
-          .OrderBy(hint => hint.Status.SortNumber())
-          .ThenBy(hint => hint.ItemFlags.SortNumber())
-          .ThenBy(hint
-               => PlayerSlots.Contains(hint.ReceivingPlayer)
-                   ? playerCount + 1
-                   : hint.ReceivingPlayer)
-          .ThenBy(hint
-               => PlayerSlots.Contains(hint.FindingPlayer)
-                   ? playerCount + 1
-                   : hint.FindingPlayer)
-          .ThenBy(hint => hint.LocationId)
-          .ToHashSet();
+    {
+        return hints
+              .OrderBy(hint => hint.Status.SortNumber())
+              .ThenBy(hint => hint.ItemFlags.SortNumber())
+              .ThenBy(hint
+                   => PlayerSlots.Contains(hint.ReceivingPlayer)
+                       ? playerCount + 1
+                       : hint.ReceivingPlayer)
+              .ThenBy(hint
+                   => PlayerSlots.Contains(hint.FindingPlayer)
+                       ? playerCount + 1
+                       : hint.FindingPlayer)
+              .ThenBy(hint => hint.LocationId)
+              .ToHashSet();
+    }
 
     public static T? SafeTo<T>(this DataStorageElement? element, T? def = default)
     {

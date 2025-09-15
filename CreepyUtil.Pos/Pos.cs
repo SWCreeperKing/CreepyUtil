@@ -113,10 +113,10 @@ public readonly struct Pos(int x = 0, int y = 0)
 public enum Direction
 {
     Center = 0,
-    Up = 0b_0000_0001, // 0, 1
-    Right = 0b_0000_0010, // 1, 0
-    Down = 0b_0000_0100, // 0, -1
-    Left = 0b_0000_1000, // -1, 0
+    Up = 1, // 0, 1
+    Right = 1 << 1, // 1, 0
+    Down = 1 << 2, // 0, -1
+    Left = 1 << 3, // -1, 0
     UpRight = Up | Right,
     UpLeft = Up | Left,
     DownRight = Down | Right,
