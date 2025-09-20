@@ -1,5 +1,4 @@
-﻿using System.Collections.Concurrent;
-using System.Text;
+﻿using System.Text;
 using Archipelago.MultiClient.Net;
 using Archipelago.MultiClient.Net.Converters;
 using Archipelago.MultiClient.Net.DataPackage;
@@ -8,7 +7,6 @@ using Archipelago.MultiClient.Net.Helpers;
 using Archipelago.MultiClient.Net.Models;
 using Archipelago.MultiClient.Net.Packets;
 using CreepyUtil.Archipelago.Commands;
-using CreepyUtil.Archipelago.Overrides;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using static Archipelago.MultiClient.Net.Enums.ItemFlags;
@@ -30,7 +28,8 @@ public class ApClient
     public Dictionary<long, string> ItemIdToName { get; private set; } = [];
     public Dictionary<long, string> LocationIdToName { get; private set; } = [];
     public List<long> MissingLocations { get; private set; } = [];
-    public GameDataLookup DataLookup { get; private set; }
+    public TwoWayLookup<long, string> Locations { get; private set; }
+    public TwoWayLookup<long, string> Items { get; private set; }
 
     public TimeSpan ServerTimeout = new(0, 0, 10);
     public bool HintsAwaitingUpdate { get; private set; } = false;
@@ -71,7 +70,7 @@ public class ApClient
 
             var result = Session.TryConnectAndLogin(gameName, Info.Slot, flags, version, tags, null, Info.Password,
                 requestSlotData);
-            
+
             if (!result.Successful) return ((LoginFailure)result).Errors;
             PlayerSlot = Session.Players.ActivePlayer.Slot;
             PlayerSlotArr = [PlayerSlot];
@@ -136,12 +135,11 @@ public class ApClient
                 SlotData = Session.DataStorage.GetSlotData();
             }
 
-            var itemReceivedResolver = (ItemReceiver)Session.Items;
-            var itemResolver =(ItemResolver) itemReceivedResolver.itemInfoResolver;
-            var cache = ((DataCache)itemResolver.cache).inMemoryCache.ToDictionary(kv => kv.Key,
-                kv => (GameDataLookup)kv.Value);
-            
-            DataLookup = cache[PlayerGames[PlayerSlot]];
+            var itemReceivedResolver = (ReceivedItemsHelper)Session!.Items;
+            var itemResolver = (ItemInfoResolver)itemReceivedResolver.itemInfoResolver;
+            var lookup = (GameDataLookup)((DataPackageCache)itemResolver.cache).inMemoryCache[PlayerGames[PlayerSlot]];
+            Locations = lookup.Locations;
+            Items = lookup.Items;
 
             OnConnectionEvent?.Invoke(this);
             IsConnected = true;
@@ -200,18 +198,18 @@ public class ApClient
         while (Session!.Items.Any()) yield return Session.Items.DequeueItem();
     }
 
-    public bool SendLocation(string id) => SendLocation(DataLookup.Locations[id]);
-    public bool SendLocations(string[] id) => SendLocations(id.Select(loc => DataLookup.Locations[loc]).ToArray());
+    public bool SendLocation(string id) => SendLocation(Locations[id]);
+    public bool SendLocations(string[] id) => SendLocations(id.Select(loc => Locations[loc]).ToArray());
 
     private bool SendLocation(long id)
     {
-        if (!MissingLocations.Contains(id)) return true; 
+        if (!MissingLocations.Contains(id)) return true;
         return IsConnected && new Task(() =>
         {
             if (MissingLocations.Count == 0) return;
             Session?.Locations.CompleteLocationChecks(id);
             MissingLocations.Remove(id);
-            ItemsSentNotification?.Invoke(DataLookup.Locations[id]);
+            ItemsSentNotification?.Invoke(Locations[id]);
         }).RunWithTimeout(ServerTimeout);
     }
 
@@ -226,7 +224,7 @@ public class ApClient
             foreach (var loc in ids)
             {
                 MissingLocations.Remove(loc);
-                ItemsSentNotification?.Invoke(DataLookup.Locations[loc]);
+                ItemsSentNotification?.Invoke(Locations[loc]);
             }
         }).RunWithTimeout(ServerTimeout);
     }
