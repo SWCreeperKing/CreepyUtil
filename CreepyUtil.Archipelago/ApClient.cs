@@ -1,11 +1,14 @@
-﻿using System.Text;
+﻿using System.Collections.Concurrent;
+using System.Text;
 using Archipelago.MultiClient.Net;
 using Archipelago.MultiClient.Net.Converters;
+using Archipelago.MultiClient.Net.DataPackage;
 using Archipelago.MultiClient.Net.Enums;
 using Archipelago.MultiClient.Net.Helpers;
 using Archipelago.MultiClient.Net.Models;
 using Archipelago.MultiClient.Net.Packets;
 using CreepyUtil.Archipelago.Commands;
+using CreepyUtil.Archipelago.Overrides;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using static Archipelago.MultiClient.Net.Enums.ItemFlags;
@@ -15,7 +18,6 @@ namespace CreepyUtil.Archipelago;
 public class ApClient
 {
     public bool IsConnected { get; private set; } = false;
-    public long UUID { get; private set; }
     public ArchipelagoSession? Session { get; private set; }
     public IArchipelagoSocketHelper? Socket { get; private set; }
     public int PlayerSlot { get; private set; }
@@ -27,18 +29,19 @@ public class ApClient
     public IReadOnlyDictionary<string, object> SlotData { get; private set; } = null!;
     public Dictionary<long, string> ItemIdToName { get; private set; } = [];
     public Dictionary<long, string> LocationIdToName { get; private set; } = [];
-    public Dictionary<long, ScoutedItemInfo> MissingLocations { get; private set; } = [];
+    public List<long> MissingLocations { get; private set; } = [];
+    public GameDataLookup DataLookup { get; private set; }
+
     public TimeSpan ServerTimeout = new(0, 0, 10);
     public bool HintsAwaitingUpdate { get; private set; } = false;
 
     public bool HasGoaled
-        => HasGoaledChached || Session?.DataStorage?.GetClientStatus() is ArchipelagoClientState.ClientGoal;
+        => HasGoaledCached || Session?.DataStorage?.GetClientStatus() is ArchipelagoClientState.ClientGoal;
 
     public bool HasPlayerListSetup = false;
-    private bool HasGoaledChached = false;
+    private bool HasGoaledCached = false;
 
     private LoginInfo Info;
-    private long GameUuid;
     private Hint[] WaitingHints = [];
     private int[] PlayerSlotArr;
     private ApCommandHandler CommandHandler;
@@ -53,23 +56,22 @@ public class ApClient
     public event Action<PrintJsonPacket>? OnPrintJsonPacketReceived;
     public event Action<PrintJsonPacket>? OnServerMessagePacketReceived;
     public event Action<PrintJsonPacket>? OnItemLogPacketReceived;
+    public event Action<string>? ItemsSentNotification;
     public event ArchipelagoSocketHelperDelagates.ErrorReceivedHandler? OnConnectionErrorReceived;
 
-    public string[]? TryConnect(LoginInfo info, long gameUUID, string gameName, ItemsHandlingFlags flags,
+    public string[]? TryConnect(LoginInfo info, string gameName, ItemsHandlingFlags flags,
         Version? version = null,
-        string[]? tags = null,
-        string? uuid = null, bool requestSlotData = true)
+        string[]? tags = null, bool requestSlotData = true)
     {
-        UUID = gameUUID;
         Info = info;
         try
         {
             Session = ArchipelagoSessionFactory.CreateSession(Info.Address, Info.Port);
             (Socket = Session.Socket).ErrorReceived += (e, s) => OnConnectionErrorReceived?.Invoke(e, s);
 
-            var result = Session.TryConnectAndLogin(gameName, Info.Slot, flags, version, tags, uuid, Info.Password,
+            var result = Session.TryConnectAndLogin(gameName, Info.Slot, flags, version, tags, null, Info.Password,
                 requestSlotData);
-
+            
             if (!result.Successful) return ((LoginFailure)result).Errors;
             PlayerSlot = Session.Players.ActivePlayer.Slot;
             PlayerSlotArr = [PlayerSlot];
@@ -128,11 +130,18 @@ public class ApClient
                 }
             };
 
-            ReloadLocations();
+            MissingLocations = Session?.Locations.AllMissingLocations.ToList()!;
             if (requestSlotData)
             {
                 SlotData = Session.DataStorage.GetSlotData();
             }
+
+            var itemReceivedResolver = (ItemReceiver)Session.Items;
+            var itemResolver =(ItemResolver) itemReceivedResolver.itemInfoResolver;
+            var cache = ((DataCache)itemResolver.cache).inMemoryCache.ToDictionary(kv => kv.Key,
+                kv => (GameDataLookup)kv.Value);
+            
+            DataLookup = cache[PlayerGames[PlayerSlot]];
 
             OnConnectionEvent?.Invoke(this);
             IsConnected = true;
@@ -191,42 +200,35 @@ public class ApClient
         while (Session!.Items.Any()) yield return Session.Items.DequeueItem();
     }
 
-    public bool SendLocation(long id)
+    public bool SendLocation(string id) => SendLocation(DataLookup.Locations[id]);
+    public bool SendLocations(string[] id) => SendLocations(id.Select(loc => DataLookup.Locations[loc]).ToArray());
+
+    private bool SendLocation(long id)
     {
+        if (!MissingLocations.Contains(id)) return true; 
         return IsConnected && new Task(() =>
         {
             if (MissingLocations.Count == 0) return;
-            var loc = MissingLocations[id];
-            Session?.Locations.CompleteLocationChecks(loc.LocationId);
+            Session?.Locations.CompleteLocationChecks(id);
             MissingLocations.Remove(id);
+            ItemsSentNotification?.Invoke(DataLookup.Locations[id]);
         }).RunWithTimeout(ServerTimeout);
     }
 
-    public bool SendLocations(params long[] ids)
+    private bool SendLocations(params long[] ids)
     {
+        ids = ids.Where(id => MissingLocations.Contains(id)).ToArray();
+        if (ids.Length == 0) return true;
         return IsConnected && new Task(() =>
         {
             if (MissingLocations.Count == 0) return;
-            var locs = ids.Select(id => MissingLocations[id].LocationId).ToArray();
-            Session?.Locations.CompleteLocationChecks(locs);
+            Session?.Locations.CompleteLocationChecks(ids);
             foreach (var loc in ids)
             {
                 MissingLocations.Remove(loc);
+                ItemsSentNotification?.Invoke(DataLookup.Locations[loc]);
             }
         }).RunWithTimeout(ServerTimeout);
-    }
-
-
-    public void ReloadLocations()
-    {
-        var missing = Session?.Locations.AllMissingLocations.ToArray()!;
-        var scoutedLocations = Session?.Locations.ScoutLocationsAsync(missing).Result!;
-        MissingLocations.Clear();
-
-        foreach (var kv in scoutedLocations.OrderBy(loc => loc.Key))
-        {
-            MissingLocations[kv.Key - UUID] = kv.Value;
-        }
     }
 
     public void SendDeathLink(string cause)
@@ -284,22 +286,22 @@ public class ApClient
 
     public void Goal()
     {
-        if (HasGoaledChached) return;
+        if (HasGoaledCached) return;
         Session?.SetGoalAchieved();
-        HasGoaledChached = true;
+        HasGoaledCached = true;
     }
 
     public void TryDisconnect()
     {
         IsConnected = false;
-        Task.Run(() =>
-             {
-                 lock (Session!)
-                 {
-                     Session.Socket.DisconnectAsync();
-                 }
-             })
-            .RunWithTimeout(ServerTimeout);
+        new Task(() =>
+            {
+                lock (Session!)
+                {
+                    Session.Socket.DisconnectAsync();
+                }
+            })
+           .RunWithTimeout(ServerTimeout);
         Session = null;
     }
 
@@ -367,11 +369,11 @@ public static class Helper
     public static string GetAsTime(this double time, bool staticSecEnding = true)
     {
         var sec = time % 60;
-        time = (float)Math.Floor(time / 60f);
+        time = Math.Floor(time / 60f);
         var min = time % 60;
-        time = (float)Math.Floor(time / 60f);
+        time = Math.Floor(time / 60f);
         var hour = time % 24;
-        var days = (float)Math.Floor(time / 24f);
+        var days = Math.Floor(time / 24f);
 
         StringBuilder sb = new();
         if (days > 0) sb.Append(days).Append("d ");

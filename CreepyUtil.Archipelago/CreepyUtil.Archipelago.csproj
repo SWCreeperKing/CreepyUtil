@@ -7,19 +7,20 @@
         <TargetFrameworks>net6.0;net48</TargetFrameworks>
     </PropertyGroup>
 
-    <ItemGroup>
-        <Reference Include="Archipelago.MultiClient.Net">
-            <HintPath>Lib\Archipelago.MultiClient.Net.dll</HintPath>
-        </Reference>
-        <Reference Include="Archipelago.MultiClient.Net" Condition="'$(TargetFramework)' == 'net48'">
-            <HintPath>Lib 4.5\Archipelago.MultiClient.Net.dll</HintPath>
-        </Reference>
-        <Reference Include="Newtonsoft.Json">
-            <HintPath>Lib\Newtonsoft.Json.dll</HintPath>
-        </Reference>
-        <Reference Include="Newtonsoft.Json" Condition="'$(TargetFramework)' == 'net48'">
-            <HintPath>Lib 4.5\Newtonsoft.Json.dll</HintPath>
-        </Reference>
+    <ItemGroup><!--        <Reference Include="Archipelago.MultiClient.Net">-->
+<!--            <HintPath>Lib\Archipelago.MultiClient.Net.dll</HintPath>-->
+<!--        </Reference>-->
+<!--        <Reference Include="Archipelago.MultiClient.Net" Condition="'$(TargetFramework)' == 'net48'">-->
+<!--            <HintPath>Lib 4.5\Archipelago.MultiClient.Net.dll</HintPath>-->
+<!--        </Reference>-->
+<!--        <Reference Include="Newtonsoft.Json">-->
+<!--            <HintPath>Lib\Newtonsoft.Json.dll</HintPath>-->
+<!--        </Reference>-->
+<!--        <Reference Include="Newtonsoft.Json" Condition="'$(TargetFramework)' == 'net48'">-->
+<!--            <HintPath>Lib 4.5\Newtonsoft.Json.dll</HintPath>-->
+<!--        </Reference>-->
+    
+      <PackageReference Include="Archipelago.MultiClient.Net" Version="6.6.1" />
     </ItemGroup>
 
 <!--    <Target Name="AfterBuild8" AfterTargets="Build" Condition="'$(TargetFramework)' == 'net8.0'">-->
@@ -48,7 +49,11 @@
         <Copy SourceFiles="E:\coding projects\C#\CreepyUtil\CreepyUtil.Archipelago\bin\Debug\net6.0/BundledApClient.dll" DestinationFolder="E:\coding projects\Godot\deathlinkipelago\DeathlinkipelagoCLI\Lib"/>
         <Copy SourceFiles="E:\coding projects\C#\CreepyUtil\CreepyUtil.Archipelago\bin\Debug\net6.0/BundledApClient.dll" DestinationFolder="E:\coding projects\Godot\deathlinkipelago\DeathlinkipelagoSharedLibrary\Lib"/>
         
-<!--        <Copy SourceFiles="E:\coding projects\C#\CreepyUtil\CreepyUtil.Archipelago\bin\Debug\net6.0/BundledApClient.dll" DestinationFolder="F:\SteamLibrary\steamapps\common\Vampire Survivors\mod dev\ArchipelagoSurvivors\ArchipelagoSurvivors\Lib"/>-->
+        <Copy SourceFiles="E:\coding projects\C#\CreepyUtil\CreepyUtil.Archipelago\bin\Debug\net6.0/BundledApClient.dll" DestinationFolder="F:\SteamLibrary\steamapps\common\Vampire Survivors\mod dev\ArchipelagoSurvivors\ArchipelagoSurvivors\Lib"/>
+        <Copy SourceFiles="E:\coding projects\C#\CreepyUtil\CreepyUtil.Archipelago\bin\Debug\net6.0/BundledApClient.dll" DestinationFolder="F:\SteamLibrary\steamapps\common\Vampire Survivors\Mods\SW_CreeperKing.ArchipelagoSurvivors\Lib"/>
+        
+        <Copy SourceFiles="E:\coding projects\C#\CreepyUtil\CreepyUtil.Archipelago\bin\Debug\net6.0/BundledApClient.dll" DestinationFolder="D:\Programs\steam\steamapps\common\Placid Plastic Duck Simulator\mod dev\PPDSAP\lib"/>
+        <Copy SourceFiles="E:\coding projects\C#\CreepyUtil\CreepyUtil.Archipelago\bin\Debug\net6.0/BundledApClient.dll" DestinationFolder="D:\Programs\steam\steamapps\common\Placid Plastic Duck Simulator\BepInEx\plugins\SW_CreeperKing.ArchipelagoMod"/>
     </Target>
     
     <Target Name="AfterBuild48" AfterTargets="Build" Condition="'$(TargetFramework)' == 'net48'">
