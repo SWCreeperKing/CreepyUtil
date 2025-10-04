@@ -27,12 +27,13 @@ public class ApClient
     public IReadOnlyDictionary<string, object> SlotData { get; private set; } = null!;
     public Dictionary<long, string> ItemIdToName { get; private set; } = [];
     public Dictionary<long, string> LocationIdToName { get; private set; } = [];
-    public List<long> MissingLocations { get; private set; } = [];
+    public List<string> MissingLocations { get; private set; } = [];
     public TwoWayLookup<long, string> Locations { get; private set; }
     public TwoWayLookup<long, string> Items { get; private set; }
 
     public TimeSpan ServerTimeout = new(0, 0, 10);
     public bool HintsAwaitingUpdate { get; private set; } = false;
+    public TagManager Tags { get; private set; }
 
     public bool HasGoaled
         => HasGoaledCached || Session?.DataStorage?.GetClientStatus() is ArchipelagoClientState.ClientGoal;
@@ -118,7 +119,7 @@ public class ApClient
                             OnServerMessagePacketReceived?.Invoke(printPacket);
                             return;
                         }
-
+                        
                         if (printPacket.Data.Length < 2) break;
                         if (printPacket.Data[1].Text is " found their " or " sent ")
                         {
@@ -129,10 +130,9 @@ public class ApClient
                 }
             };
 
-            MissingLocations = Session?.Locations.AllMissingLocations.ToList()!;
             if (requestSlotData)
             {
-                SlotData = Session.DataStorage.GetSlotData();
+                SlotData = Session!.DataStorage.GetSlotData();
             }
 
             var itemReceivedResolver = (ReceivedItemsHelper)Session!.Items;
@@ -141,8 +141,11 @@ public class ApClient
             Locations = lookup.Locations;
             Items = lookup.Items;
 
+            MissingLocations = Session?.Locations.AllMissingLocations.Select(l => Locations[l]).ToList()!;
+            
             OnConnectionEvent?.Invoke(this);
             IsConnected = true;
+            Tags = new TagManager(Session);
             return null;
         }
         catch (Exception e)
@@ -198,53 +201,40 @@ public class ApClient
         while (Session!.Items.Any()) yield return Session.Items.DequeueItem();
     }
 
-    public bool SendLocation(string id) => SendLocation(Locations[id]);
-    public bool SendLocations(string[] id) => SendLocations(id.Select(loc => Locations[loc]).ToArray());
-
-    private bool SendLocation(long id)
-    {
+    public bool SendLocation(string id){
         if (!MissingLocations.Contains(id)) return true;
         return IsConnected && new Task(() =>
         {
             if (MissingLocations.Count == 0) return;
-            Session?.Locations.CompleteLocationChecks(id);
+            Session?.Locations.CompleteLocationChecks(Locations[id]);
             MissingLocations.Remove(id);
-            ItemsSentNotification?.Invoke(Locations[id]);
+            ItemsSentNotification?.Invoke(id);
         }).RunWithTimeout(ServerTimeout);
     }
 
-    private bool SendLocations(params long[] ids)
+    public bool SendLocations(string[] ids)
     {
         ids = ids.Where(id => MissingLocations.Contains(id)).ToArray();
         if (ids.Length == 0) return true;
         return IsConnected && new Task(() =>
         {
             if (MissingLocations.Count == 0) return;
-            Session?.Locations.CompleteLocationChecks(ids);
+            Session?.Locations.CompleteLocationChecks(ids.Select(id => Locations[id]).ToArray());
             foreach (var loc in ids)
             {
                 MissingLocations.Remove(loc);
-                ItemsSentNotification?.Invoke(Locations[loc]);
+                ItemsSentNotification?.Invoke(loc);
             }
         }).RunWithTimeout(ServerTimeout);
     }
-
+    
     public void SendDeathLink(string cause)
     {
         new Task(() =>
             {
                 lock (Session!)
                 {
-                    Session?.Socket.SendPacketAsync(new BouncePacket
-                    {
-                        Tags = ["DeathLink"],
-                        Data = new Dictionary<string, JToken>
-                        {
-                            { "time", DateTime.UtcNow.ToUnixTimeStamp() },
-                            { "source", PlayerName },
-                            { "cause", cause }
-                        }
-                    });
+                    Session?.Socket.SendPacketAsync(PacketMaker.CreateDeathLinkPacket(PlayerName, cause));
                 }
             })
            .RunWithTimeout(ServerTimeout);
