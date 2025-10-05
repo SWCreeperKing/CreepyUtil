@@ -11,7 +11,7 @@ using Color = Raylib_cs.Color;
 
 namespace CreepyUtil.Archipelago.UIBackbone;
 
-public class ApUIClient : ApClient
+public class ApUIClient : ApClient.ApClient
 {
     public static Vector4 White = Color.White.ToV4();
     public static Vector4 DirtyWhite = new(0.95f, 0.95f, 0.81f, 1f);
@@ -46,8 +46,8 @@ public class ApUIClient : ApClient
     {
         IsPlayer = slot => slot == PlayerSlot;
         if (!connectPacket) return;
-        OnConnectionEvent += client =>
-            client.Session.Socket.PacketReceived += OnPacketReceived;
+        // OnConnectionEvent += client =>
+        //     client.Session.Socket.PacketReceived += OnPacketReceived;
     }
 
     public void OnPacketReceived(ArchipelagoPacketBase packet)

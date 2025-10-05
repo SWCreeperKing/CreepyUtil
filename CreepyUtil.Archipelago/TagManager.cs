@@ -30,12 +30,19 @@ public class TagManager
     }
 
     public ArchipelagoTag[] GetTags() => Tags.ToArray();
+    public string[] GetTagsAsStrings() => Tags.Select(tag => tag.StringTag()).ToArray();
+
+    public void SetTags(params ArchipelagoTag[] tags)
+    {
+        Tags = new HashSet<ArchipelagoTag>(tags);
+        UpdateTags();
+    }
 
     public void FetchTags()
     {
         Tags = new HashSet<ArchipelagoTag>(Session.ConnectionInfo.Tags.Select(tag => tag.ToArchipelagoTag()));
     }
-    
+
     public void ToggleDeathLink()
     {
         if (this[DeathLink])
@@ -47,7 +54,7 @@ public class TagManager
             _ = this + DeathLink;
         }
     }
-    
+
     private void UpdateTags()
     {
         Session.ConnectionInfo.UpdateConnectionOptions(Tags.Select(tag => tag.StringTag()).ToArray());
@@ -87,6 +94,11 @@ public enum ArchipelagoTag
     /// Client participates in DeathLink, can send and receive DeathLinks
     /// </summary>
     DeathLink,
+
+    /// <summary>
+    /// Client participates in TrapLink, can send and receive TrapLinks
+    /// </summary>
+    TrapLink,
 }
 
 public static class TagTranslator
@@ -98,7 +110,8 @@ public static class TagTranslator
         { "TextOnly", TextOnly },
         { "Tracker", Tracker },
         { "HintGame", HintGame },
-        { "DeathLink", DeathLink }
+        { "DeathLink", DeathLink },
+        { "TrapLink", TrapLink }
     };
 
     public static ArchipelagoTag ToArchipelagoTag(this string tag)

@@ -16,4 +16,15 @@ public static class PacketMaker
             { "cause", cause }
         }
     };
+    
+    public static BouncePacket CreateTrapLinkPacket(string playerName, string trapName) => new()
+    {
+        Tags = ["TrapLink"],
+        Data = new Dictionary<string, JToken>
+        {
+            { "time", DateTime.UtcNow.ToUnixTimeStamp() },
+            { "source", playerName },
+            { "trap_name", trapName }
+        }
+    };
 }

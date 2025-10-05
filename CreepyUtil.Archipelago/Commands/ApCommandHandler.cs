@@ -2,9 +2,9 @@
 
 namespace CreepyUtil.Archipelago.Commands;
 
-public class ApCommandHandler(ApClient client)
+public class ApCommandHandler(ApClient.ApClient client)
 {
-    private ApClient Client = client;
+    private ApClient.ApClient Client = client;
     private Dictionary<string, IApCommandInterface> _Commands = [];
 
     public void RunCommand(ChatPrintJsonPacket message, string[] split)
