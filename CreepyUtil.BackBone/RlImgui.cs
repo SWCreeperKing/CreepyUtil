@@ -22,8 +22,8 @@ using System.Text;
 using ImGuiNET;
 using Raylib_cs;
 using static System.Runtime.InteropServices.Marshal;
-using static ImGuiNET.ImGui;
 using static CreepyUtil.BackBone.ImguiKeyMapping;
+using static ImGuiNET.ImGui;
 
 namespace CreepyUtil.BackBone;
 

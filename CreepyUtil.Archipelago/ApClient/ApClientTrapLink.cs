@@ -3,6 +3,7 @@
 public partial class ApClient
 {
     private Dictionary<string, Action<string>> TrapLink = [];
+    public event Action<string, string>? OnUnregisteredTrapLinkReceived;
     
     public void SendTrapLink(string trap)
     {

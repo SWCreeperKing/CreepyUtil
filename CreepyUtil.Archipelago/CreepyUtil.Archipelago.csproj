@@ -28,6 +28,7 @@
         <Copy SourceFiles="E:\coding projects\C#\CreepyUtil\CreepyUtil.Archipelago\bin\Debug\net6.0/CreepyUtil.Archipelago.dll" DestinationFolder="E:\coding projects\Godot\archipelagomultitextclient\Lib"/>
         <Copy SourceFiles="E:\coding projects\C#\CreepyUtil\CreepyUtil.Archipelago\bin\Debug\net6.0/Newtonsoft.Json.dll" DestinationFolder="E:\coding projects\Godot\archipelagomultitextclient\Lib"/>
         <Copy SourceFiles="E:\coding projects\C#\CreepyUtil\CreepyUtil.Archipelago\bin\Debug\net6.0/Archipelago.MultiClient.Net.dll" DestinationFolder="E:\coding projects\Godot\archipelagomultitextclient\Lib"/>
+<!--        <Copy SourceFiles="E:\coding projects\C#\CreepyUtil\CreepyUtil.Archipelago\bin\Debug\net6.0/BundledApClient.dll" DestinationFolder="E:\coding projects\Godot\archipelagomultitextclient\Lib"/>-->
 
         <Copy SourceFiles="E:\coding projects\C#\CreepyUtil\CreepyUtil.Archipelago\bin\Debug\net6.0/BundledApClient.dll" DestinationFolder="E:\coding projects\Godot\deathlinkipelago\DeathLinkipelago\Lib"/>
         <Copy SourceFiles="E:\coding projects\C#\CreepyUtil\CreepyUtil.Archipelago\bin\Debug\net6.0/BundledApClient.dll" DestinationFolder="E:\coding projects\Godot\deathlinkipelago\DeathlinkipelagoCLI\Lib"/>

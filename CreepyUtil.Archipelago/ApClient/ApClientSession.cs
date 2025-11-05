@@ -11,14 +11,35 @@ public partial class ApClient
     public Dictionary<long, string> ItemIdToName { get; private set; } = [];
     public Dictionary<long, string> LocationIdToName { get; private set; } = [];
     
+    public PlayerInfo[] AllPlayers => Session?.Players.AllPlayers.ToArray()!;
+    public IRoomStateHelper RoomState => Session?.RoomState!;
+    
     public bool HasPlayerListSetup = false;
     
     private IArchipelagoSocketHelper? Socket;
     private ArchipelagoSession? Session;
+    private int ItemsReceivedCounter;
+    private int ItemsReceivedTracker;
 
-    public IEnumerable<ItemInfo?> GetOutstandingItems()
+    public int LocationsCheckedCount => (int)Session?.Locations.AllLocationsChecked.Count!;
+    public string[] LocationsChecked => Session?.Locations.AllLocationsChecked.Select(l => Locations[l]).ToArray()!;
+    public int LocationCount => Locations.Count();
+    
+    // public ItemInfo[] GetOutstandingItems(bool newOnly = false)
+    public ItemInfo[] GetOutstandingItems()
     {
-        while (Session!.Items.Any()) yield return Session.Items.DequeueItem();
+        if (ItemsReceivedCounter >= Session!.Items.AllItemsReceived.Count) return []; 
+        var arr = Session!.Items.AllItemsReceived.Skip(ItemsReceivedCounter).ToArray();
+        ItemsReceivedCounter += arr.Length;
+        
+        // if (newOnly)
+        // {
+        //     var delta = ItemsReceivedCounter - ItemsReceivedTracker;
+        //     if (delta < 0) return arr;
+        //     
+        // }
+
+        return arr;
     }
 
     public bool SendLocation(string id){
@@ -84,6 +105,8 @@ public partial class ApClient
 
         return location;
     }
+
+    public string? GetAlias(int slot) => Session?.Players.GetPlayerAliasAndName(slot); 
     
     public T? GetFromStorage<T>(string key, Scope scope = Scope.Slot, T? def = default)
     {

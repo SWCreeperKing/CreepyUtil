@@ -2,6 +2,8 @@
 
 public partial class ApClient
 {
+    public event Action<string, string>? OnDeathLinkPacketReceived;
+    
     public void SendDeathLink(string cause)
     {
         if (!Tags[ArchipelagoTag.DeathLink]) throw new ArgumentException("Cannot send deathlink if client does not have the deathlink tag");
@@ -14,5 +16,4 @@ public partial class ApClient
             })
            .RunWithTimeout(ServerTimeout);
     }
-
 }

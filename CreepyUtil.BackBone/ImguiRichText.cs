@@ -58,6 +58,7 @@ public static partial class RlImgui
             ImGui.PopStyleColor();
         }
     }
+    
     public static string CleanColors(string? text)
     {
         text ??= "";

@@ -91,14 +91,19 @@ public enum ArchipelagoTag
     HintGame,
 
     /// <summary>
-    /// Client participates in DeathLink, can send and receive DeathLinks
+    /// Client participates in DeathLink, can send and receive DeathLinks packets
     /// </summary>
     DeathLink,
 
     /// <summary>
-    /// Client participates in TrapLink, can send and receive TrapLinks
+    /// Client participates in TrapLink, can send and receive TrapLinks packets
     /// </summary>
     TrapLink,
+    
+    /// <summary>
+    /// Client participates in RingLink, can send and receive RingLink packets
+    /// </summary>
+    RingLink,
 }
 
 public static class TagTranslator

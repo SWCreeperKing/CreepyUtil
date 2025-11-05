@@ -2,8 +2,8 @@
 using System.Runtime.InteropServices;
 using CreepyUtil.BackBone.LoggerConsole.Commands;
 using Raylib_cs;
-using static Raylib_cs.TraceLogLevel;
 using static CreepyUtil.BackBone.LoggerConsole.Logger.Level;
+using static Raylib_cs.TraceLogLevel;
 
 namespace CreepyUtil.BackBone.LoggerConsole;
 
