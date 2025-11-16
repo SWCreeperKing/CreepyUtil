@@ -14,12 +14,13 @@ public partial class Tracker(Pack pack, string variant)
     [LuaHide] public List<Map> MapsList = [];
     [LuaHide] public List<Location> LocationsList = [];
     [LuaHide] public Dictionary<string, Layout> Layouts = [];
+    [LuaHide] public Pack Pack = pack;
 
     public bool AddItems(string jsonFileName)
     {
         try
         {
-            ItemsList.AddRange(JsonConvert.DeserializeObject<Item[]>(pack.ReadFile(jsonFileName))!);
+            ItemsList.AddRange(JsonConvert.DeserializeObject<Item[]>(Pack.ReadFile(jsonFileName))!);
             return true;
         }
         catch (Exception e)
@@ -33,7 +34,7 @@ public partial class Tracker(Pack pack, string variant)
     {
         try
         {
-            MapsList.AddRange(JsonConvert.DeserializeObject<Map[]>(pack.ReadFile(jsonFileName))!);
+            MapsList.AddRange(JsonConvert.DeserializeObject<Map[]>(Pack.ReadFile(jsonFileName))!);
             return true;
         }
         catch (Exception e)
@@ -47,7 +48,7 @@ public partial class Tracker(Pack pack, string variant)
     {
         try
         {
-            LocationsList.AddRange(JsonConvert.DeserializeObject<Location[]>(pack.ReadFile(jsonFileName))!);
+            LocationsList.AddRange(JsonConvert.DeserializeObject<Location[]>(Pack.ReadFile(jsonFileName))!);
             return true;
         }
         catch (Exception e)
@@ -62,7 +63,7 @@ public partial class Tracker(Pack pack, string variant)
         try
         {
             foreach (var (key, value) in JsonConvert.DeserializeObject<Dictionary<string, Layout>>(
-                         pack.ReadFile(jsonFileName))!)
+                         Pack.ReadFile(jsonFileName))!)
             {
                 Layouts[key] = value;
             }

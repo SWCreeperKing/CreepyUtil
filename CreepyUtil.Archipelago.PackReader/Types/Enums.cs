@@ -54,6 +54,22 @@ public static class Enums
         Horizontal,
         Vertical
     }
+
+    public enum AutoTrackingBackendName
+    {
+        SNES,
+        UAT,
+        AP
+    }
+    
+    public enum AutoTrackingState
+    {
+        Unavailable = -1,
+        Disabled = 0,
+        Disconnected,
+        SocketConnectedNotReady,
+        GameConnectedReady
+    }
     
     internal static Shape TextToShape(this string text)
         => text.ToLower() switch
@@ -114,4 +130,13 @@ public static class Enums
             "horizontal" => OrientationType.Horizontal,
             "vertical" => OrientationType.Vertical
         };
+
+    internal static AutoTrackingBackendName TextToAutoTrackingBackendName(this string text)
+        => text.ToLower() switch
+        {
+            "snes" => AutoTrackingBackendName.SNES,
+            "uat" => AutoTrackingBackendName.UAT,
+            "ap" => AutoTrackingBackendName.AP
+        };
+
 }

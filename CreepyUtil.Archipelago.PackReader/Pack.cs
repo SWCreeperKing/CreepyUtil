@@ -1,4 +1,5 @@
-﻿using CreepyUtil.Archipelago.PackReader.Bridge;
+﻿using System.Reflection;
+using CreepyUtil.Archipelago.PackReader.Bridge;
 using CreepyUtil.Archipelago.PackReader.Types;
 using NLua;
 
@@ -11,11 +12,19 @@ public class Pack(Func<string, string> readFile)
     public Lua Context;
     public Tracker Tracker;
 
+    public event Action<string>? OnLuaPrintCalled;
+
     public void CreateLuaContext(string variant)
     {
-        Context = new();
-
+        Context = new Lua();
         Tracker = new Tracker(this, variant);
+        
         Context["Tracker"] = Tracker;
+        Context["PopVersion"] = "0.32.1";
+        
+        Context.RegisterFunction("print", this,
+            typeof(Pack).GetMethod("Print", BindingFlags.NonPublic | BindingFlags.Instance));
     }
+
+    private void Print(string text) => OnLuaPrintCalled?.Invoke(text);
 }
