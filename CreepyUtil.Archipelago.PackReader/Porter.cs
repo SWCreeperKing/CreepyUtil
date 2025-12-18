@@ -34,7 +34,7 @@ public static class Porter
                 : File.ReadAllText($"{path}/{file}");
         }
 
-        pack = new Pack(readFile)
+        pack = new Pack(path, readFile)
         {
             Manifest = JsonConvert.DeserializeObject<Manifest>(readFile("manifest.json"))
         };

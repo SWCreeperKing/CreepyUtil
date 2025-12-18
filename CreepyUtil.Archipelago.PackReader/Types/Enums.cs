@@ -61,7 +61,7 @@ public static class Enums
         UAT,
         AP
     }
-    
+
     public enum AutoTrackingState
     {
         Unavailable = -1,
@@ -70,7 +70,26 @@ public static class Enums
         SocketConnectedNotReady,
         GameConnectedReady
     }
-    
+
+    public enum AccessibilityLevel
+    {
+        None,
+        Partial,
+        Inspect = 3,
+        SequenceBreak = 5,
+        Normal = 6,
+        Cleared = 7
+    }
+
+    public enum Highlight
+    {
+        Avoid = -1,
+        None = 0,
+        NoPriority = 1,
+        Unspecified = 2,
+        Priority = 3
+    }
+
     internal static Shape TextToShape(this string text)
         => text.ToLower() switch
         {
@@ -138,5 +157,4 @@ public static class Enums
             "uat" => AutoTrackingBackendName.UAT,
             "ap" => AutoTrackingBackendName.AP
         };
-
 }

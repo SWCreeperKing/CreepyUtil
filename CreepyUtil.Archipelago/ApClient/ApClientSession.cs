@@ -8,9 +8,6 @@ namespace CreepyUtil.Archipelago.ApClient;
 
 public partial class ApClient
 {
-    public Dictionary<long, string> ItemIdToName { get; private set; } = [];
-    public Dictionary<long, string> LocationIdToName { get; private set; } = [];
-
     public PlayerInfo[] AllPlayers => Session?.Players.AllPlayers.ToArray()!;
     public IRoomStateHelper RoomState => Session?.RoomState!;
 
@@ -21,12 +18,13 @@ public partial class ApClient
     private int ItemsReceivedCounter;
     private int ItemsReceivedTracker;
 
+    public string? Seed => Session?.RoomState.Seed;
+    public int LocationCount =>  Locations.Count();
     public int LocationsCheckedCount => (int)Session?.Locations.AllLocationsChecked.Count!;
     public string[] LocationsChecked => Session?.Locations.AllLocationsChecked.Select(l => Locations[l]).ToArray()!;
-    public int GameFullTotalLocationCount => Locations.Count();
-
-    public int LocationCount
-        => (int)(Session?.Locations.AllLocationsChecked.Count + MissingLocations.Count)!;
+    
+    private Dictionary<string, Dictionary<long, string>> _ItemIdToName = [];
+    private Dictionary<string, Dictionary<long, string>> _LocationIdToName = [];
 
     // public ItemInfo[] GetOutstandingItems(bool newOnly = false)
     public ItemInfo[] GetOutstandingItems()
@@ -73,6 +71,13 @@ public partial class ApClient
         }).RunWithTimeout(ServerTimeout);
     }
 
+    public ScoutedItemInfo? ScoutLocation(string id)
+    {
+        var location = Locations[id];
+        var items = Session?.Locations.ScoutLocationsAsync(location).GetAwaiter().GetResult();
+        return items?[location];
+    }
+
     public void SetupPlayerList()
     {
         if (HasPlayerListSetup) return;
@@ -92,21 +97,33 @@ public partial class ApClient
 
     public string ItemIdToItemName(long id, int playerSlot)
     {
-        if (!ItemIdToName.TryGetValue(id, out var itemName))
+        var game = PlayerGames[playerSlot];
+        if (!_ItemIdToName.TryGetValue(game, out var dict))
         {
-            itemName = ItemIdToName[id] = Session!.Items.GetItemName(id, PlayerGames[playerSlot]);
+            _ItemIdToName[game] = dict = new Dictionary<long, string>();
         }
 
+        if (!dict.TryGetValue(id, out var itemName))
+        {
+            itemName = _ItemIdToName[game][id] = Session!.Items.GetItemName(id, PlayerGames[playerSlot]);
+        }
+        
         return itemName;
     }
 
     public string LocationIdToLocationName(long id, int playerSlot)
     {
-        if (!LocationIdToName.TryGetValue(id, out var location))
+        var game = PlayerGames[playerSlot];
+        if (!_LocationIdToName.TryGetValue(game, out var dict))
         {
-            location = LocationIdToName[id] = Session!.Locations.GetLocationNameFromId(id, PlayerGames[playerSlot]);
+            _LocationIdToName[game] = dict = new Dictionary<long, string>();
         }
 
+        if (!dict.TryGetValue(id, out var location))
+        {
+            location = _LocationIdToName[game][id] = Session!.Locations.GetLocationNameFromId(id, PlayerGames[playerSlot]);
+        }
+        
         return location;
     }
 

@@ -77,12 +77,16 @@ public partial class Tracker(Pack pack, string variant)
         }
     }
 
-    //TODO: lack of understanding
+    // codes can be from items, from sliver: 
+    // sums up the provided item count for a code.
+    // Say you have sword1 and sword2 which each have the code sword, then the provider count for sword is 2
     public int ProviderCountForCode(string code) { throw new NotImplementedException(); }
 
-    //TODO: lack of understanding
+    // from sliver:
+    // returns (a proxy for) an item that can provide the code in the argument
+    // for the example above, FindObjectForCode would return an object representing either sword1 or sword2 depending on order of definition
     public object FindObjectForCode(string code) { throw new NotImplementedException(); }
     
-    //TODO: lack of understanding
+    // only activate tab
     public void UiHint(string name, string value) { throw new NotImplementedException(); }
 }

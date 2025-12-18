@@ -34,6 +34,7 @@ public partial class ApClient
     private LoginInfo Info;
     private int[] PlayerSlotArr;
 
+    public event Action<string>? OnDebugInfoMessage; 
     public event Action<ApClient>? OnConnectionEvent;
     public event Action<int>? OnPlayerStateChanged;
     public event Action? OnConnectionLost;
@@ -53,6 +54,8 @@ public partial class ApClient
         Info = info;
         try
         {
+            _ItemIdToName = [];
+            _LocationIdToName = [];
             Session = ArchipelagoSessionFactory.CreateSession(Info.Address, Info.Port);
             (Socket = Session.Socket).ErrorReceived += (e, s) => OnConnectionErrorReceived?.Invoke(e, s);
 
@@ -69,6 +72,7 @@ public partial class ApClient
 
             // ItemsReceivedCounter = GetFromStorage("items_received_counter", def: 0);
             // ItemsReceivedTracker = 0;
+            ItemsReceivedCounter = 0;
 
             Session.DataStorage.TrackHints(hints
                 =>
