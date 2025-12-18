@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\CreepyUti.Fun\CreepyUti.Fun.csproj" />
+      <ProjectReference Include="..\CreepyUtil.ClrCnsl.Prompts\CreepyUtil.ClrCnsl.Prompts.csproj" />
+      <ProjectReference Include="..\CreepyUtil.ClrCnsl\CreepyUtil.ClrCnsl.csproj" />
+      <ProjectReference Include="..\CreepyUtil.Matrix2d\CreepyUtil.Matrix2d.csproj" />
+      <ProjectReference Include="..\CreepyUtil.Pos\CreepyUtil.Pos.csproj" />
+      <ProjectReference Include="..\CreepyUtil.TreeNode\CreepyUtil.TreeNode.csproj" />
+      <ProjectReference Include="..\CreepyUtil\CreepyUtil.csproj" />
+    </ItemGroup>
+
+</Project>
