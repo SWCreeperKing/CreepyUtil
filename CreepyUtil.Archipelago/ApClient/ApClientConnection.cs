@@ -157,9 +157,10 @@ public partial class ApClient
 
             Session.Locations.CheckedLocationsUpdated += locations => CheckedLocationsUpdated?.Invoke(locations);
             
-            if (requestSlotData)
-            {
-                SlotData = Session!.DataStorage.GetSlotData();
+            if (requestSlotData) {
+                var slotDataTask = Session!.DataStorage.GetSlotDataAsync();
+                slotDataTask.ContinueWith(slotData => SlotData = slotData.Result);
+                slotDataTask.Wait();
             }
             
             GetLookups(PlayerGames[PlayerSlot], out var locations, out var items);
