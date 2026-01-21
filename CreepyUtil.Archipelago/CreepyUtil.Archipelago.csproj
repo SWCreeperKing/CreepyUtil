@@ -5,8 +5,24 @@
         <Nullable>enable</Nullable>
         <LangVersion>12</LangVersion>
         <TargetFrameworks>net6.0;net472</TargetFrameworks>
+        
+<!--    Directory Variables    -->
+        <IlRepackCommand>ilrepack /out:BundledApClient.dll CreepyUtil.Archipelago.dll Newtonsoft.Json.dll Archipelago.MultiClient.Net.dll</IlRepackCommand>
+        
+        <ProjectBin>$(MSBuildProjectDirectory)\bin</ProjectBin>
+        <SteamLibraryD>D:\Programs\steam\steamapps\common</SteamLibraryD>
+        <SteamLibraryF>F:\SteamLibrary\steamapps\common</SteamLibraryF>
+        <GodotDirectory>E:\coding projects\Godot</GodotDirectory>
+        
+        <Deathlinkipelago>$(GodotDirectory)\deathlinkipelago</Deathlinkipelago>
+        <HydraClient>$(GodotDirectory)\archipelagomultitextclient\Lib</HydraClient>
+        
+        <PPDS>$(SteamLibraryD)\Placid Plastic Duck Simulator</PPDS>
+        <PowerWash>$(SteamLibraryF)\PowerWash Simulator</PowerWash>
+        <VampireSurvivors>$(SteamLibraryF)\Vampire Survivors</VampireSurvivors>
+        <SlimeRancher>$(SteamLibraryD)\Slime Rancher</SlimeRancher>
     </PropertyGroup>
-
+    
     <ItemGroup>
         <Reference Include="Archipelago.MultiClient.Net">
             <HintPath>Lib\Archipelago.MultiClient.Net.dll</HintPath>
@@ -23,36 +39,29 @@
     </ItemGroup>
 
     <Target Name="AfterBuild6" AfterTargets="Build" Condition="'$(TargetFramework)' == 'net6.0'">
-        <Exec WorkingDirectory="E:\coding projects\C#\CreepyUtil\CreepyUtil.Archipelago\bin\Debug\net6.0" Command="ilrepack /out:BundledApClient.dll CreepyUtil.Archipelago.dll Newtonsoft.Json.dll Archipelago.MultiClient.Net.dll"/>
+        <Exec WorkingDirectory="$(ProjectBin)\Debug\net6.0" Command="$(IlRepackCommand)"/>
 
-        <Copy SourceFiles="E:\coding projects\C#\CreepyUtil\CreepyUtil.Archipelago\bin\Debug\net6.0/CreepyUtil.Archipelago.dll" DestinationFolder="E:\coding projects\Godot\archipelagomultitextclient\Lib"/>
-        <Copy SourceFiles="E:\coding projects\C#\CreepyUtil\CreepyUtil.Archipelago\bin\Debug\net6.0/Newtonsoft.Json.dll" DestinationFolder="E:\coding projects\Godot\archipelagomultitextclient\Lib"/>
-        <Copy SourceFiles="E:\coding projects\C#\CreepyUtil\CreepyUtil.Archipelago\bin\Debug\net6.0/Archipelago.MultiClient.Net.dll" DestinationFolder="E:\coding projects\Godot\archipelagomultitextclient\Lib"/>
-<!--        <Copy SourceFiles="E:\coding projects\C#\CreepyUtil\CreepyUtil.Archipelago\bin\Debug\net6.0/CreepyUtil.Archipelago.dll" DestinationFolder="E:\coding projects\Godot\spoiler-sphere-reader\Lib"/>-->
-<!--        <Copy SourceFiles="E:\coding projects\C#\CreepyUtil\CreepyUtil.Archipelago\bin\Debug\net6.0/Newtonsoft.Json.dll" DestinationFolder="E:\coding projects\Godot\spoiler-sphere-reader\Lib"/>-->
-<!--        <Copy SourceFiles="E:\coding projects\C#\CreepyUtil\CreepyUtil.Archipelago\bin\Debug\net6.0/Archipelago.MultiClient.Net.dll" DestinationFolder="E:\coding projects\Godot\spoiler-sphere-reader\Lib"/>-->
-<!--        <Copy SourceFiles="E:\coding projects\C#\CreepyUtil\CreepyUtil.Archipelago\bin\Debug\net6.0/BundledApClient.dll" DestinationFolder="E:\coding projects\Godot\archipelagomultitextclient\Lib"/>-->
-        <Copy SourceFiles="E:\coding projects\C#\CreepyUtil\CreepyUtil.Archipelago\bin\Debug\net6.0/BundledApClient.dll" DestinationFolder="E:\coding projects\Godot\spoiler-sphere-reader\Lib"/>
+        <Copy SourceFiles="$(ProjectBin)\Debug\net6.0/CreepyUtil.Archipelago.dll" DestinationFolder="$(HydraClient)"/>
+        <Copy SourceFiles="$(ProjectBin)\Debug\net6.0/Newtonsoft.Json.dll" DestinationFolder="$(HydraClient)"/>
+        <Copy SourceFiles="$(ProjectBin)\Debug\net6.0/Archipelago.MultiClient.Net.dll" DestinationFolder="$(HydraClient)"/>
+        
+        <Copy SourceFiles="$(ProjectBin)\Debug\net6.0/BundledApClient.dll" DestinationFolder="$(Deathlinkipelago)\DeathLinkipelago\Lib"/>
+        <Copy SourceFiles="$(ProjectBin)\Debug\net6.0/BundledApClient.dll" DestinationFolder="$(Deathlinkipelago)\DeathlinkipelagoCLI\Lib"/>
+        <Copy SourceFiles="$(ProjectBin)\Debug\net6.0/BundledApClient.dll" DestinationFolder="$(Deathlinkipelago)\DeathlinkipelagoSharedLibrary\Lib"/>
 
-        <Copy SourceFiles="E:\coding projects\C#\CreepyUtil\CreepyUtil.Archipelago\bin\Debug\net6.0/BundledApClient.dll" DestinationFolder="E:\coding projects\Godot\deathlinkipelago\DeathLinkipelago\Lib"/>
-        <Copy SourceFiles="E:\coding projects\C#\CreepyUtil\CreepyUtil.Archipelago\bin\Debug\net6.0/BundledApClient.dll" DestinationFolder="E:\coding projects\Godot\deathlinkipelago\DeathlinkipelagoCLI\Lib"/>
-        <Copy SourceFiles="E:\coding projects\C#\CreepyUtil\CreepyUtil.Archipelago\bin\Debug\net6.0/BundledApClient.dll" DestinationFolder="E:\coding projects\Godot\deathlinkipelago\DeathlinkipelagoSharedLibrary\Lib"/>
+        <Copy SourceFiles="$(ProjectBin)\Debug\net6.0/BundledApClient.dll" DestinationFolder="$(VampireSurvivors)\mod dev\ArchipelagoSurvivors\ArchipelagoSurvivors\Lib"/>
+        <Copy SourceFiles="$(ProjectBin)\Debug\net6.0/BundledApClient.dll" DestinationFolder="$(VampireSurvivors)\Mods\SW_CreeperKing.ArchipelagoSurvivors\Lib"/>
 
-        <Copy SourceFiles="E:\coding projects\C#\CreepyUtil\CreepyUtil.Archipelago\bin\Debug\net6.0/BundledApClient.dll" DestinationFolder="F:\SteamLibrary\steamapps\common\Vampire Survivors\mod dev\ArchipelagoSurvivors\ArchipelagoSurvivors\Lib"/>
-        <Copy SourceFiles="E:\coding projects\C#\CreepyUtil\CreepyUtil.Archipelago\bin\Debug\net6.0/BundledApClient.dll" DestinationFolder="F:\SteamLibrary\steamapps\common\Vampire Survivors\Mods\SW_CreeperKing.ArchipelagoSurvivors\Lib"/>
-
-        <Copy SourceFiles="E:\coding projects\C#\CreepyUtil\CreepyUtil.Archipelago\bin\Debug\net6.0/BundledApClient.dll" DestinationFolder="D:\Programs\steam\steamapps\common\Placid Plastic Duck Simulator\mod dev\PPDSAP\lib"/>
-        <Copy SourceFiles="E:\coding projects\C#\CreepyUtil\CreepyUtil.Archipelago\bin\Debug\net6.0/BundledApClient.dll" DestinationFolder="D:\Programs\steam\steamapps\common\Placid Plastic Duck Simulator\Mods\SW_CreeperKing.ArchipelagoMod/lib"/>
+        <Copy SourceFiles="$(ProjectBin)\Debug\net6.0/BundledApClient.dll" DestinationFolder="$(PPDS)\mod dev\PPDSAP\lib"/>
+        <Copy SourceFiles="$(ProjectBin)\Debug\net6.0/BundledApClient.dll" DestinationFolder="$(PPDS)\Mods\SW_CreeperKing.ArchipelagoMod/lib"/>
     </Target>
 
     <Target Name="AfterBuild472" AfterTargets="Build" Condition="'$(TargetFramework)' == 'net472'">
-        <Exec WorkingDirectory="E:\coding projects\C#\CreepyUtil\CreepyUtil.Archipelago\bin\Debug\net472" Command="ilrepack /out:BundledApClient.dll CreepyUtil.Archipelago.dll Newtonsoft.Json.dll Archipelago.MultiClient.Net.dll"/>
-        <Copy SourceFiles="E:\coding projects\C#\CreepyUtil\CreepyUtil.Archipelago\bin\Debug\net472/BundledApClient.dll" DestinationFolder="F:\SteamLibrary\steamapps\common\PowerWash Simulator\mod dev\PowerwashSimAP\lib"/>
-        <Copy SourceFiles="E:\coding projects\C#\CreepyUtil\CreepyUtil.Archipelago\bin\Debug\net472/BundledApClient.dll" DestinationFolder="F:\SteamLibrary\steamapps\common\PowerWash Simulator\BepInEx\plugins\SW_CreeperKing.ArchipelagoMod"/>
-        
-        <Copy SourceFiles="E:\coding projects\C#\CreepyUtil\CreepyUtil.Archipelago\bin\Debug\net472/BundledApClient.dll" DestinationFolder="D:\Programs\steam\steamapps\common\Slime Rancher\Mods\SW_CreeperKing.Slimipelago\Lib"/>
-        <Copy SourceFiles="E:\coding projects\C#\CreepyUtil\CreepyUtil.Archipelago\bin\Debug\net472/BundledApClient.dll" DestinationFolder="D:\Programs\steam\steamapps\common\Slime Rancher\mod dev\Slimipelago\Slimipelago\Lib"/>
+        <Exec WorkingDirectory="$(ProjectBin)\Debug\net472" Command="$(IlRepackCommand)"/>
+        <Copy SourceFiles="$(ProjectBin)\Debug\net472/BundledApClient.dll" DestinationFolder="$(Powerwash)\mod dev\PowerwashSimAP\lib"/>
+        <Copy SourceFiles="$(ProjectBin)\Debug\net472/BundledApClient.dll" DestinationFolder="$(Powerwash)\BepInEx\plugins\SW_CreeperKing.ArchipelagoMod"/>
+
+        <Copy SourceFiles="$(ProjectBin)\Debug\net472/BundledApClient.dll" DestinationFolder="$(SlimeRancher)\Mods\SW_CreeperKing.Slimipelago\Lib"/>
+        <Copy SourceFiles="$(ProjectBin)\Debug\net472/BundledApClient.dll" DestinationFolder="$(SlimeRancher)\mod dev\Slimipelago\Slimipelago\Lib"/>
     </Target>
-
-
 </Project>

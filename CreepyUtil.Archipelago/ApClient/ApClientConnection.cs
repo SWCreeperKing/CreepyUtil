@@ -24,17 +24,28 @@ public partial class ApClient
     public TagManager Tags { get; private set; }
     public bool HintsAwaitingUpdate { get; private set; } = false;
 
-    public TimeSpan ServerTimeout = new(0, 0, 10);
+    public TimeSpan ServerTimeout
+    {
+        get => _ServerTimeout;
+        set
+        {
+            _ServerTimeout = value;
+            // todo: EWWW static
+            ArchipelagoSession.ArchipelagoConnectionTimeoutInSeconds = (int) value.TotalSeconds;
+        }
+    }
+
     public bool ExcludeBouncedPacketsFromSelf = true;
 
     public bool HasGoaled
         => HasGoaledCached || Session?.DataStorage?.GetClientStatus() is ArchipelagoClientState.ClientGoal;
-    
+
     private bool HasGoaledCached = false;
     private LoginInfo Info;
     private int[] PlayerSlotArr;
+    private TimeSpan _ServerTimeout;
 
-    public event Action<string>? OnDebugInfoMessage; 
+    public event Action<string>? OnDebugInfoMessage;
     public event Action<ApClient>? OnConnectionEvent;
     public event Action<int>? OnPlayerStateChanged;
     public event Action? OnConnectionLost;
@@ -47,6 +58,8 @@ public partial class ApClient
     public event Action<string>? ItemsSentNotification;
     public event Action<ReadOnlyCollection<long>>? CheckedLocationsUpdated;
     public event ArchipelagoSocketHelperDelagates.ErrorReceivedHandler? OnConnectionErrorReceived;
+
+    public ApClient(TimeSpan? timeout = null) => ServerTimeout = timeout ?? new TimeSpan(0, 0, 10);
 
     public string[]? TryConnect(LoginInfo info, string gameName, ItemsHandlingFlags flags,
         Version? version = null, ArchipelagoTag[]? tags = null, bool requestSlotData = true)
@@ -106,7 +119,9 @@ public partial class ApClient
                             if (!Tags[ArchipelagoTag.DeathLink]) return;
                             var source = (string)bouncedPacket.Data["source"]!;
                             if (source == PlayerName && ExcludeBouncedPacketsFromSelf) return;
-                            var message = bouncedPacket.Data.TryGetValue("cause", out var cause) ? (string)cause! : "Died a generic (unknown) death";
+                            var message = bouncedPacket.Data.TryGetValue("cause", out var cause)
+                                ? (string)cause!
+                                : "Died a generic (unknown) death";
                             OnDeathLinkPacketReceived?.Invoke(source, message);
                         }
 
@@ -135,7 +150,7 @@ public partial class ApClient
                             var amount = (int)bouncedPacket.Data["amount"]!;
                             OnRingLinkPacketReceived?.Invoke(source, amount);
                         }
-                        
+
                         break;
                     case PrintJsonPacket printPacket:
                         OnPrintJsonPacketReceived?.Invoke(printPacket);
@@ -156,16 +171,16 @@ public partial class ApClient
             };
 
             Session.Locations.CheckedLocationsUpdated += locations => CheckedLocationsUpdated?.Invoke(locations);
-            
+
             if (requestSlotData) {
                 var slotDataTask = Session!.DataStorage.GetSlotDataAsync();
                 slotDataTask.ContinueWith(slotData => SlotData = slotData.Result);
                 slotDataTask.Wait();
             }
-            
+
             GetLookups(PlayerGames[PlayerSlot], out var locations, out var items);
             Locations = locations;
-            Items = items; 
+            Items = items;
 
             MissingLocations = Session?.Locations.AllMissingLocations.Select(l => Locations[l]).ToList()!;
 
@@ -188,7 +203,7 @@ public partial class ApClient
         locations = lookup.Locations;
         items = lookup.Items;
     }
-    
+
     /// <summary>
     /// Update connection status
     /// </summary>
