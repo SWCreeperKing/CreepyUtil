@@ -86,4 +86,12 @@ public static class Helper
             return def;
         }
     }
+
+    public static string[] SplitAndTrim(this string text, char delimiter) => text.Split(delimiter).Select(s => s.Trim()).Where(s => s is not "").ToArray();
+
+    public static string Repeat(this char text, int count) => string.Join("", Enumerable.Repeat(text, count));
+    public static string Repeat(this string text, int count) => string.Join("", Enumerable.Repeat(text, count));
+    public static string[] ShredString(this string text) => text.Replace("\r", "").Split('\n');
+    public static string Surround(this string text, char surrounding) => $"{surrounding}{text}{surrounding}";
+    public static string Surround(this string text, string surrounding) => $"{surrounding}{text}{surrounding}";
 }
