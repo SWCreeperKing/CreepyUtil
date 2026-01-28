@@ -21,6 +21,7 @@
         <PowerWash>$(SteamLibraryF)\PowerWash Simulator</PowerWash>
         <VampireSurvivors>$(SteamLibraryF)\Vampire Survivors</VampireSurvivors>
         <SlimeRancher>$(SteamLibraryD)\Slime Rancher</SlimeRancher>
+        <WidgetInc>$(SteamLibraryF)\WidgetInc</WidgetInc>
     </PropertyGroup>
     
     <ItemGroup>
@@ -63,5 +64,8 @@
 
         <Copy SourceFiles="$(ProjectBin)\Debug\net472/BundledApClient.dll" DestinationFolder="$(SlimeRancher)\Mods\SW_CreeperKing.Slimipelago\Lib"/>
         <Copy SourceFiles="$(ProjectBin)\Debug\net472/BundledApClient.dll" DestinationFolder="$(SlimeRancher)\mod dev\Slimipelago\Slimipelago\Lib"/>
+
+        <Copy SourceFiles="$(ProjectBin)\Debug\net472/BundledApClient.dll" DestinationFolder="$(WidgetInc)\mod dev\Widgitpelago\Widgitpelago\Lib"/>
+        <Copy SourceFiles="$(ProjectBin)\Debug\net472/BundledApClient.dll" DestinationFolder="$(WidgetInc)\Mods\SW_CreeperKing.Widgitpelago\Lib"/>
     </Target>
 </Project>

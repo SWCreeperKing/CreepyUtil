@@ -106,20 +106,21 @@ public class PythonClassFactory(string className) : IPythonObject
         Variables.AddRange(variables);
         return this;
     }
-
-    public PythonClassFactory AddMethod(MethodFactory method)
+    
+    public PythonClassFactory AddMethod(MethodFactory? method)
     {
+        if (method is null) return this;
         Methods.Add(method);
         return this;
     }
 
-    public PythonClassFactory AddMethods(params MethodFactory[] methods)
+    public PythonClassFactory AddMethods(params MethodFactory?[] methods)
     {
         Methods.AddRange(methods);
         return this;
     }
 
-    public string GetText()
+    public string GetText(int indentLevel = 0)
     {
         StringBuilder sb = new();
 
@@ -160,11 +161,10 @@ public class PythonClassFactory(string className) : IPythonObject
     }
 }
 
-public class MethodFactory(string methodName) : IPythonObject
+public class MethodFactory(string methodName) : TCodeBlockFactory<MethodFactory>
 {
     private string MethodName = methodName;
     private List<string> Parameters = [];
-    private List<string> CodeLines = [];
     private string Return = ""; // not needed, just there because
 
     public MethodFactory AddParam(string param)
@@ -178,23 +178,7 @@ public class MethodFactory(string methodName) : IPythonObject
         Parameters.AddRange(param);
         return this;
     }
-
-    public MethodFactory AddCode(string code)
-    {
-        CodeLines.AddRange(code.ShredString());
-        return this;
-    }
-
-    public MethodFactory AddCode(params string[] code)
-    {
-        foreach (var line in code)
-        {
-            AddCode(line);
-        }
-
-        return this;
-    }
-
+    
     public MethodFactory SetReturn(string retrn)
     {
         Return = retrn;
@@ -213,27 +197,81 @@ public class MethodFactory(string methodName) : IPythonObject
             sb.Append(" -> ").Append(Return);
         }
 
-        indent += '\t';
-        sb.Append(":\n").Append(indent);
-
-        if (CodeLines.Count == 0)
-        {
-            sb.Append("pass");
-        }
-        else
-        {
-            sb.Append(string.Join($"\n{indent}", CodeLines));
-        }
+        sb.Append(":\n").Append(GetBlock(indentLevel + 1));
 
         return sb.ToString();
     }
 
-    public string GetText() => GetMethod();
+    public override string GetText(int indentLevel = 0) => GetMethod(indentLevel);
+}
+
+public class ForLoopFactory(string variable, string collection) : TCodeBlockFactory<ForLoopFactory>
+{
+    public string GetFor(int indentLevel = 0)
+    {
+        return $"{'\t'.Repeat(indentLevel)}for {variable} in {collection}:\n{GetBlock(indentLevel + 1)}";
+    }
+
+    public override string GetText(int indentLevel = 0) => GetFor(indentLevel);
+}
+
+public class CodeBlockFactory : TCodeBlockFactory<CodeBlockFactory>;
+
+public class TCodeBlockFactory<T> : IPythonObject where T : TCodeBlockFactory<T>
+{
+    private List<string> CodeLines = [];
+
+    public T AddCode(string code)
+    {
+        CodeLines.AddRange(code.ShredString());
+        return (T)this;
+    }
+
+    public T AddCode(IPythonObject obj)
+    {
+        AddCode(obj.GetText());
+        return (T)this;
+    }
+
+    public T AddCode(CodeBlockFactory codeBlock)
+    {
+        AddCode(codeBlock.GetText());
+        return (T)this;
+    }
+
+    public T AddNewLine()
+    {
+        CodeLines.Add("");
+        return (T)this;
+    }
+
+    public T AddCode(params string[] code)
+    {
+        foreach (var line in code)
+        {
+            AddCode(line);
+        }
+
+        return (T)this;
+    }
+
+    public string GetBlock(int indentLevel = 0)
+    {
+        StringBuilder sb = new();
+        var indent = '\t'.Repeat(indentLevel);
+
+        sb.Append(indent).Append(CodeLines.Count == 0 ? "pass" : string.Join($"\n{indent}", CodeLines));
+
+        return sb.ToString();
+    }
+
+    public virtual string GetText(int indentLevel = 0) => GetBlock(indentLevel);
+    public override string ToString() => GetText();
 }
 
 public class Comment(string text) : IPythonObject
 {
-    public string GetText() => $"# {text}";
+    public string GetText(int indentLevel = 0) => $"# {text}";
 }
 
 public class Variable(string name, string value = "", string type = "") : PythonVariable<string>(name, value, type)
@@ -264,15 +302,23 @@ public class StringDoubleArray(string name, IEnumerable<IEnumerable<string>>? va
     public override string ParseValue(IEnumerable<string> value) => $"[{string.Join(", ", value.Select(s => s.Surround('"')))}]";
 }
 
-public abstract class MappedVariable<TKey, TValue>(string name, Dictionary<TKey, TValue>? value = null, string type = "") : ListedVariable<KeyValuePair<TKey, TValue>>(name, value, type) where TKey : notnull
+public class MappedVariable<TKey, TValue>(string name, Dictionary<TKey, TValue>? value = null, string type = "") : ListedVariable<KeyValuePair<TKey, TValue>>(name, value, type) where TKey : notnull
 {
+    public override char[] StartEndChars { get; } = ['{', '}'];
     public override string ParseValue(KeyValuePair<TKey, TValue> value) => $"{ParseKey(value.Key)}: {ParseValue(value.Value)}";
-    public abstract string ParseKey(TKey key);
-    public abstract string ParseValue(TValue value);
+    public virtual string ParseKey(TKey key) => key.ToString();
+    public virtual string ParseValue(TValue value) => value.ToString();
 }
 
-public abstract class ListedVariable<T>(string name, IEnumerable<T>? value = null, string type = "") : PythonVariable<IEnumerable<T>?>(name, value, type)
+public class ListedVariableAsMappedVariable<T>(string name, IEnumerable<T>? value = null, string type = "") : ListedVariable<T?>(name, value, type)
 {
+    public override char[] StartEndChars { get; } = ['{', '}'];
+}
+
+public class ListedVariable<T>(string name, IEnumerable<T>? value = null, string type = "") : PythonVariable<IEnumerable<T>?>(name, value, type)
+{
+    public virtual char[] StartEndChars { get; } = ['[', ']'];
+
     public override bool HasValue(IEnumerable<T>? value) => value is not null;
 
     public override void AddValue(IEnumerable<T>? value, int indentLevel, StringBuilder sb)
@@ -286,12 +332,12 @@ public abstract class ListedVariable<T>(string name, IEnumerable<T>? value = nul
         var indent = '\t'.Repeat(indentLevel);
         var innerIndent = '\t'.Repeat(indentLevel + 1);
 
-        sb.Append("[\n").Append(innerIndent)
+        sb.Append(StartEndChars[0]).Append("\n").Append(innerIndent)
           .Append(string.Join($",\n{innerIndent}", value.Select(ParseValue)))
-          .Append('\n').Append(indent).Append(']');
+          .Append('\n').Append(indent).Append(StartEndChars[1]);
     }
 
-    public abstract string ParseValue(T value);
+    public virtual string ParseValue(T value) => value.ToString();
 }
 
 public abstract class PythonVariable<T>(string name, T value, string type = "") : IPythonVariable
@@ -317,7 +363,8 @@ public abstract class PythonVariable<T>(string name, T value, string type = "") 
     public abstract bool HasValue(T value);
     public abstract void AddValue(T value, int indentLevel, StringBuilder sb);
 
-    public string GetText() => GetVariable();
+    public string GetText(int indentLevel = 0) => GetVariable(indentLevel);
+    public override string ToString() => GetText();
 }
 
 public interface IPythonVariable : IPythonObject
@@ -327,5 +374,5 @@ public interface IPythonVariable : IPythonObject
 
 public interface IPythonObject
 {
-    public string GetText();
+    public string GetText(int indentLevel = 0);
 }

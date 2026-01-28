@@ -21,7 +21,7 @@ public class RuleFactory(WorldFactory worldFactory)
 {
     private static readonly string[] DefaultParams = ["state", "player"];
 
-    public string LogicGeneratorLink = "No Link Given"; // see above
+    public string LogicGeneratorLink = "No Link Given";
 
     private WorldFactory WorldFactory = worldFactory;
     private Dictionary<string, MethodFactory> LogicMethods = [];
@@ -41,20 +41,20 @@ public class RuleFactory(WorldFactory worldFactory)
 
     public RuleFactory AddCompoundLogicFunction(string token, string methodName, string rule, params string[] parameters)
     {
-        AddLogicFunction(token, methodName, $"return {LogicCompiler.CompileRule(rule, LogicMethodTokens, WorldFactory.OnCompilerError)}", parameters);
+        AddLogicFunction(token, methodName, $"return {GenerateCompiledRule(rule)}", parameters);
         return this;
     }
 
     public RuleFactory AddLogicRule(string key, string rule)
     {
         if (rule.Trim() is "") return this;
-        LogicRules.Add($"\"{key}\": lambda state: {LogicCompiler.CompileRule(rule.Trim(), LogicMethodTokens, WorldFactory.OnCompilerError)}");
+        LogicRules.Add($"\"{key}\": lambda state: {GenerateCompiledRule(rule)}");
         return this;
     }
 
     public RuleFactory AddLogicRules(Dictionary<string, string> rules) => rules.Aggregate(this, (factory, pair) => factory.AddLogicRule(pair.Key, pair.Value));
-
-    public void GenerateRulesFile(string fileOutput = "Rules.py", params string[] extraParams)
+    
+    public void GenerateRulesFile(string fileOutput = "Rules.py", string imports = "from .Locations import *", params string[] extraParams)
     {
         var defaultParams = DefaultParams.ToList();
         defaultParams.RemoveAll(s => s is "state");
@@ -69,10 +69,16 @@ public class RuleFactory(WorldFactory worldFactory)
 
         var rulePy = new PythonFactory()
                     .AddObject(new Comment($"File is Auto-generated, see: [{LogicGeneratorLink}]"))
+                    .AddImports(imports)
                     .AddObject(ruleMap)
                     .AddObjects(LogicMethods.Values.ToArray<IPythonObject>());
 
         File.WriteAllText($"{WorldFactory.OutputDirectory}{fileOutput}", rulePy.GetText());
+    }
+
+    public string GenerateCompiledRule(string rule)
+    {
+        return LogicCompiler.CompileRule(rule.Trim(), LogicMethodTokens, WorldFactory.OnCompilerError);
     }
 }
 
