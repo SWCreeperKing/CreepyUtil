@@ -15,20 +15,18 @@ public class PythonFactory
 
     public PythonFactory AddImports(params string[] imports)
     {
-        foreach (var import in imports)
-        {
-            AddImport(import);
-        }
+        foreach (var import in imports) { AddImport(import); }
         return this;
     }
 
-    public PythonFactory AddObject(IPythonObject obj)
+    public PythonFactory AddObject(IPythonObject? obj)
     {
+        if (obj is null) return this;
         Objects.Add(obj);
         return this;
     }
 
-    public PythonFactory AddObjects(params IPythonObject[] objects)
+    public PythonFactory AddObjects(params IPythonObject?[] objects)
     {
         Objects.AddRange(objects);
         return this;
@@ -39,10 +37,7 @@ public class PythonFactory
         StringBuilder sb = new();
         if (Imports.Any())
         {
-            foreach (var import in Imports)
-            {
-                sb.Append(import).Append('\n');
-            }
+            foreach (var import in Imports) { sb.Append(import).Append('\n'); }
             sb.Append('\n');
         }
 
@@ -59,6 +54,7 @@ public class PythonClassFactory(string className) : IPythonObject
     private List<string> Comment = [];
     private List<string> Decorators = [];
 
+    private List<PythonClassFactory> Classes = [];
     private List<IPythonVariable> Variables = [];
     private List<MethodFactory> Methods = [];
 
@@ -88,10 +84,19 @@ public class PythonClassFactory(string className) : IPythonObject
 
     public PythonClassFactory AddComment(params string[] comment)
     {
-        foreach (var commentLine in comment)
-        {
-            AddComment(commentLine);
-        }
+        foreach (var commentLine in comment) { AddComment(commentLine); }
+        return this;
+    }
+
+    public PythonClassFactory AddClass(PythonClassFactory pyClass)
+    {
+        Classes.Add(pyClass);
+        return this;
+    }
+
+    public PythonClassFactory AddClasses(params PythonClassFactory[] pyClasses)
+    {
+        Classes.AddRange(pyClasses);
         return this;
     }
 
@@ -106,7 +111,7 @@ public class PythonClassFactory(string className) : IPythonObject
         Variables.AddRange(variables);
         return this;
     }
-    
+
     public PythonClassFactory AddMethod(MethodFactory? method)
     {
         if (method is null) return this;
@@ -116,7 +121,7 @@ public class PythonClassFactory(string className) : IPythonObject
 
     public PythonClassFactory AddMethods(params MethodFactory?[] methods)
     {
-        Methods.AddRange(methods);
+        Methods.AddRange(methods.Where(method => method is not null)!);
         return this;
     }
 
@@ -135,24 +140,29 @@ public class PythonClassFactory(string className) : IPythonObject
         if (Comment.Count != 0)
         {
             sb.Append("\t\"\"\"");
-            foreach (var line in Comment)
-            {
-                sb.Append("\n\t").Append(line);
-            }
+            foreach (var line in Comment) { sb.Append("\n\t").Append(line); }
 
             sb.Append("\n\t\"\"\"\n");
         }
 
+        if (Variables.Count == 0 && Methods.Count == 0 && Classes.Count == 0)
+        {
+            sb.Append('\t'.Repeat(indentLevel + 1)).Append("pass");
+            return sb.ToString();
+        }
+
+        if (Classes.Count != 0)
+        {
+            foreach (var pyClass in Classes)
+            {
+                sb.Append(pyClass.GetText(indentLevel + 1)).Append("\n\n");
+            }
+        }
+        
         if (Variables.Count != 0)
         {
-            foreach (var variable in Variables)
-            {
-                sb.Append(variable.GetVariable(1)).Append('\n');
-            }
-            if (Methods.Any())
-            {
-                sb.Append('\n');
-            }
+            foreach (var variable in Variables) { sb.Append(variable.GetVariable(1)).Append('\n'); }
+            if (Methods.Any()) { sb.Append('\n'); }
         }
 
         sb.Append(string.Join("\n\n", Methods.Select(m => m.GetMethod(1))));
@@ -178,7 +188,7 @@ public class MethodFactory(string methodName) : TCodeBlockFactory<MethodFactory>
         Parameters.AddRange(param);
         return this;
     }
-    
+
     public MethodFactory SetReturn(string retrn)
     {
         Return = retrn;
@@ -190,12 +200,10 @@ public class MethodFactory(string methodName) : TCodeBlockFactory<MethodFactory>
         StringBuilder sb = new();
         var indent = '\t'.Repeat(indentLevel);
 
-        sb.Append(indent).Append("def ").Append(MethodName).Append('(').Append(string.Join(", ", Parameters)).Append(')');
+        sb.Append(indent).Append("def ").Append(MethodName).Append('(').Append(string.Join(", ", Parameters))
+          .Append(')');
 
-        if (Return is not "")
-        {
-            sb.Append(" -> ").Append(Return);
-        }
+        if (Return is not "") { sb.Append(" -> ").Append(Return); }
 
         sb.Append(":\n").Append(GetBlock(indentLevel + 1));
 
@@ -213,6 +221,56 @@ public class ForLoopFactory(string variable, string collection) : TCodeBlockFact
     }
 
     public override string GetText(int indentLevel = 0) => GetFor(indentLevel);
+}
+
+public class IfFactory(string condition) : TCodeBlockFactory<ForLoopFactory>
+{
+    private List<ElifFactory> ElIfs = [];
+    private CodeBlockFactory? Else;
+
+    public IfFactory AddElseIf(ElifFactory factory)
+    {
+        ElIfs.Add(factory);
+        return this;
+    }
+
+    public IfFactory SetElse(CodeBlockFactory factory)
+    {
+        Else = factory;
+        return this;
+    }
+
+    public string GetIf(int indentLevel = 0)
+    {
+        StringBuilder sb = new();
+        var indent = '\t'.Repeat(indentLevel);
+
+        sb.Append(indent).Append("if ").Append(condition).Append(":\n").Append(GetBlock(indentLevel + 1));
+
+        foreach (var elIfBlock in ElIfs) { sb.Append('\n').Append(elIfBlock.GetText(indentLevel)); }
+
+        if (Else is not null)
+        {
+            sb.Append('\n').Append(indentLevel).Append("else:\n").Append(Else.GetText(indentLevel + 1));
+        }
+
+        return $"{'\t'.Repeat(indentLevel)}if {condition}:\n{GetBlock(indentLevel + 1)}";
+    }
+
+    public override string GetText(int indentLevel = 0) => GetIf(indentLevel);
+}
+
+public class ElifFactory(string condition) : TCodeBlockFactory<ForLoopFactory>
+{
+    public string GetIf(int indentLevel = 0)
+    {
+        StringBuilder sb = new();
+        sb.Append('\t'.Repeat(indentLevel)).Append("elif ").Append(condition).Append(":\n")
+          .Append(GetBlock(indentLevel + 1));
+        return sb.ToString();
+    }
+
+    public override string GetText(int indentLevel = 0) => GetIf(indentLevel);
 }
 
 public class CodeBlockFactory : TCodeBlockFactory<CodeBlockFactory>;
@@ -247,10 +305,7 @@ public class TCodeBlockFactory<T> : IPythonObject where T : TCodeBlockFactory<T>
 
     public T AddCode(params string[] code)
     {
-        foreach (var line in code)
-        {
-            AddCode(line);
-        }
+        foreach (var line in code) { AddCode(line); }
 
         return (T)this;
     }
@@ -280,42 +335,61 @@ public class Variable(string name, string value = "", string type = "") : Python
     public override void AddValue(string value, int indentLevel, StringBuilder sb) => sb.Append(value);
 }
 
-public class StringMap(string name, Dictionary<string, string>? value = null, string type = "") : MappedVariable<string, string>(name, value, type)
+public class StringMap
+    (string name, Dictionary<string, string>? value = null, string type = "") : MappedVariable<string, string>(
+    name, value, type
+)
 {
     public override string ParseKey(string key) => key.Surround('"');
     public override string ParseValue(string value) => value.Surround('"');
 }
 
-public class StringArrayMap(string name, Dictionary<string, string[]>? value = null, string type = "") : MappedVariable<string, string[]>(name, value, type)
+public class StringArrayMap
+    (string name, Dictionary<string, string[]>? value = null, string type = "") : MappedVariable<string, string[]>(
+    name, value, type
+)
 {
     public override string ParseKey(string key) => key.Surround('"');
     public override string ParseValue(string[] value) => $"[{string.Join(", ", value.Select(s => s.Surround('"')))}]";
 }
 
-public class StringArray(string name, IEnumerable<string>? value = null, string type = "", bool stringify = true) : ListedVariable<string>(name, value, type)
+public class StringArray
+    (string name, IEnumerable<string>? value = null, string type = "", bool stringify = true) : ListedVariable<string>(
+    name, value, type
+)
 {
     public override string ParseValue(string value) => stringify ? value.Surround('"') : value;
 }
 
-public class StringDoubleArray(string name, IEnumerable<IEnumerable<string>>? value = null, string type = "") : ListedVariable<IEnumerable<string>>(name, value, type)
+public class StringDoubleArray
+    (string name, IEnumerable<IEnumerable<string>>? value = null, string type = "")
+    : ListedVariable<IEnumerable<string>>(name, value, type)
 {
-    public override string ParseValue(IEnumerable<string> value) => $"[{string.Join(", ", value.Select(s => s.Surround('"')))}]";
+    public override string ParseValue(IEnumerable<string> value)
+        => $"[{string.Join(", ", value.Select(s => s.Surround('"')))}]";
 }
 
-public class MappedVariable<TKey, TValue>(string name, Dictionary<TKey, TValue>? value = null, string type = "") : ListedVariable<KeyValuePair<TKey, TValue>>(name, value, type) where TKey : notnull
+public class MappedVariable<TKey, TValue>
+    (string name, Dictionary<TKey, TValue>? value = null, string type = "")
+    : ListedVariable<KeyValuePair<TKey, TValue>>(name, value, type) where TKey : notnull
 {
     public override char[] StartEndChars { get; } = ['{', '}'];
-    public override string ParseValue(KeyValuePair<TKey, TValue> value) => $"{ParseKey(value.Key)}: {ParseValue(value.Value)}";
+
+    public override string ParseValue(KeyValuePair<TKey, TValue> value)
+        => $"{ParseKey(value.Key)}: {ParseValue(value.Value)}";
+
     public virtual string ParseKey(TKey key) => key.ToString();
     public virtual string ParseValue(TValue value) => value.ToString();
 }
 
-public class ListedVariableAsMappedVariable<T>(string name, IEnumerable<T>? value = null, string type = "") : ListedVariable<T?>(name, value, type)
+public class ListedVariableAsMappedVariable<T>
+    (string name, IEnumerable<T>? value = null, string type = "") : ListedVariable<T?>(name, value, type)
 {
     public override char[] StartEndChars { get; } = ['{', '}'];
 }
 
-public class ListedVariable<T>(string name, IEnumerable<T>? value = null, string type = "") : PythonVariable<IEnumerable<T>?>(name, value, type)
+public class ListedVariable<T>
+    (string name, IEnumerable<T>? value = null, string type = "") : PythonVariable<IEnumerable<T>?>(name, value, type)
 {
     public virtual char[] StartEndChars { get; } = ['[', ']'];
 
@@ -348,10 +422,7 @@ public abstract class PythonVariable<T>(string name, T value, string type = "") 
         StringBuilder sb = new();
         sb.Append('\t'.Repeat(indentLevel)).Append(name);
 
-        if (type is not "")
-        {
-            sb.Append(": ").Append(type);
-        }
+        if (type is not "") { sb.Append(": ").Append(type); }
 
         if (!HasValue(value)) return sb.ToString();
         sb.Append(" = ");

@@ -28,6 +28,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CreepyUtil.Archipelago.Pack
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tester2", "Tester2\Tester2.csproj", "{355AB44D-7515-4F42-BECE-B58B11A5D0A2}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CreepyUtil.Archipelago.WorldFactory", "CreepyUtil.Archipelago.WorldFactory\CreepyUtil.Archipelago.WorldFactory.csproj", "{3FEEF136-F35F-4F8A-B7CC-6423F911F29C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -90,5 +92,9 @@ Global
 		{355AB44D-7515-4F42-BECE-B58B11A5D0A2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{355AB44D-7515-4F42-BECE-B58B11A5D0A2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{355AB44D-7515-4F42-BECE-B58B11A5D0A2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3FEEF136-F35F-4F8A-B7CC-6423F911F29C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3FEEF136-F35F-4F8A-B7CC-6423F911F29C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3FEEF136-F35F-4F8A-B7CC-6423F911F29C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3FEEF136-F35F-4F8A-B7CC-6423F911F29C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

@@ -54,7 +54,7 @@ public class RuleFactory(WorldFactory worldFactory)
 
     public RuleFactory AddLogicRules(Dictionary<string, string> rules) => rules.Aggregate(this, (factory, pair) => factory.AddLogicRule(pair.Key, pair.Value));
     
-    public void GenerateRulesFile(string fileOutput = "Rules.py", string imports = "from .Locations import *", params string[] extraParams)
+    public void GenerateRulesFile(string fileOutput = "Rules.py", string imports = "import math\nfrom .Locations import *", params string[] extraParams)
     {
         var defaultParams = DefaultParams.ToList();
         defaultParams.RemoveAll(s => s is "state");

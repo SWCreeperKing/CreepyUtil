@@ -42,9 +42,21 @@ public class OptionsFactory(WorldFactory worldFactory)
         return this;
     }
 
-    public OptionsFactory AddCheckOptions(MethodFactory checkOptions)
+    public OptionsFactory AddCheckOptions(Action<MethodFactory>? checkOptions = null)
     {
-        CheckOptions = checkOptions;
+        CheckOptions ??= 
+            new MethodFactory("check_options")
+               .AddParam("world")
+               .AddCode(new Variable("options", "world.options"))
+               .AddCode(new Variable("random", "world.random"))
+               .AddCode(new Variable("settings", "world.settings"));
+        checkOptions?.Invoke(CheckOptions);
+        return this;
+    }
+
+    public OptionsFactory InjectCodeIntoOptionsClass(Action<PythonClassFactory>? action)
+    {
+        action?.Invoke(OptionClass);
         return this;
     }
 

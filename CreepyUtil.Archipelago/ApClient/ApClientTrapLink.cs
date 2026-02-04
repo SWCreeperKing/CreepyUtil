@@ -15,7 +15,7 @@ public partial class ApClient
                     Session?.Socket.SendPacketAsync(PacketMaker.CreateTrapLinkPacket(PlayerName, trap));
                 }
             })
-           .RunWithTimeout(ServerTimeout);
+           .RunWithTimeout(ServerTimeout, OnErrorReceived);
     }
     
     /// <summary>

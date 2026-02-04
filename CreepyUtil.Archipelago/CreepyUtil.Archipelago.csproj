@@ -22,6 +22,7 @@
         <VampireSurvivors>$(SteamLibraryF)\Vampire Survivors</VampireSurvivors>
         <SlimeRancher>$(SteamLibraryD)\Slime Rancher</SlimeRancher>
         <WidgetInc>$(SteamLibraryF)\WidgetInc</WidgetInc>
+        <TheWereCleaner>$(SteamLibraryD)\The WereCleaner</TheWereCleaner>
     </PropertyGroup>
     
     <ItemGroup>
@@ -37,6 +38,10 @@
         <Reference Include="Newtonsoft.Json" Condition="'$(TargetFramework)' == 'net472'">
             <HintPath>Lib 4.5\Newtonsoft.Json.dll</HintPath>
         </Reference>
+    </ItemGroup>
+    
+    <ItemGroup>
+      <Folder Include="WorldFactory\" />
     </ItemGroup>
 
     <Target Name="AfterBuild6" AfterTargets="Build" Condition="'$(TargetFramework)' == 'net6.0'">
@@ -67,5 +72,8 @@
 
         <Copy SourceFiles="$(ProjectBin)\Debug\net472/BundledApClient.dll" DestinationFolder="$(WidgetInc)\mod dev\Widgitpelago\Widgitpelago\Lib"/>
         <Copy SourceFiles="$(ProjectBin)\Debug\net472/BundledApClient.dll" DestinationFolder="$(WidgetInc)\Mods\SW_CreeperKing.Widgitpelago\Lib"/>
+        
+        <Copy SourceFiles="$(ProjectBin)\Debug\net472/BundledApClient.dll" DestinationFolder="$(TheWereCleaner)\mod dev\Werepelago\Werepelago\Lib"/>
+        <Copy SourceFiles="$(ProjectBin)\Debug\net472/BundledApClient.dll" DestinationFolder="$(TheWereCleaner)\Mods\SW_CreeperKing.Werepelago\Lib"/>
     </Target>
 </Project>

@@ -14,6 +14,6 @@ public partial class ApClient
                     Session?.Socket.SendPacketAsync(PacketMaker.CreateDeathLinkPacket(PlayerName, cause));
                 }
             })
-           .RunWithTimeout(ServerTimeout);
+           .RunWithTimeout(ServerTimeout, OnErrorReceived);
     }
 }

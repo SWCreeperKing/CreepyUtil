@@ -14,7 +14,7 @@ public partial class ApClient
             {
                 Session.Say(message);
             }
-        }).RunWithTimeout(ServerTimeout);
+        }).RunWithTimeout(ServerTimeout, OnErrorReceived);
     }
     
     public void RegisterCommand(IApCommandInterface command) => CommandHandler.RegisterCommand(command);

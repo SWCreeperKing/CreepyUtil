@@ -14,6 +14,6 @@ public partial class ApClient
                     Session?.Socket.SendPacketAsync(PacketMaker.CreateRingLinkPacket(PlayerSlot, amount));
                 }
             })
-           .RunWithTimeout(ServerTimeout);
+           .RunWithTimeout(ServerTimeout, OnErrorReceived);
     }
 }

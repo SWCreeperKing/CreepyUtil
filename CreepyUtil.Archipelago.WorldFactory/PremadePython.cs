@@ -42,8 +42,10 @@ public static class PremadePython
     {
         return new ForLoopFactory("item, amt", $"{collection}.items()")
               .AddCode("world.location_count -= amt")
-              .AddCode(new ForLoopFactory("_", "range(amt)")
-                  .AddCode("pool.append(world.create_item(item))")).ToString();
+              .AddCode(
+                   new ForLoopFactory("_", "range(amt)")
+                      .AddCode("pool.append(world.create_item(item))")
+               ).ToString();
     }
 
     public static string CreateItemsFromCountGenCode(string amount, string item, bool stringify = true)
@@ -58,10 +60,32 @@ public static class PremadePython
         return new ForLoopFactory("_", "range(world.location_count)")
               .AddCode($"pool.append(world.create_item(world.random.choice({collection})))").ToString();
     }
+    
+    public static string CreateItemsFromClassificationList(string collection = "item_table")
+    {
+        return new ForLoopFactory("item, classification", $"{collection}.items()")
+              .AddCode("world.location_count -= 1")
+              .AddCode("pool.append(world.create_item(item))").ToString();
+    }
+    
+    public static string CreateItemsFromList(string collection)
+    {
+        return new ForLoopFactory("item", collection)
+              .AddCode("world.location_count -= 1")
+              .AddCode("pool.append(world.create_item(item))").ToString();
+    }
+
+    public static string CreateItemsFillRemainingWithItem(string item)
+    {
+        return new ForLoopFactory("_", "range(world.location_count)")
+              .AddCode($"pool.append(world.create_item({item.Surround('"')}))").ToString();
+    }
 
     public static string CreateUniqueId(string variableName = "shuffled", string extra = "")
     {
-        return new CodeBlockFactory().AddCode($"characters = [char for char in f\"{extra}{{self.multiworld.seed}}{{self.player_name}}\"]")
+        return new CodeBlockFactory().AddCode(
+                                          $"characters = [char for char in f\"{extra}{{self.multiworld.seed}}{{self.player_name}}\"]"
+                                      )
                                      .AddCode("self.random.shuffle(characters)")
                                      .AddCode("shuffled = f\"ap_uuid_{''.join(characters).replace(\" \", \"_\")}\"")
                                      .GetText();
@@ -75,5 +99,29 @@ public static class PremadePython
                 if {condition}:
                     self.multiworld.push_precollected(self.create_item({itemName}))
                 """;
+    }
+
+    public static string CreateUtPassthrough(string slotDataName, string variable)
+    {
+        return CreateUtPassthrough(slotDataName, variable, $"passthrough[{slotDataName}]");
+    }
+    
+    public static string CreateUtPassthrough(string slotDataName, string variable, string fromPassthrough)
+    {
+        return new CodeBlockFactory()
+              .AddCode($"if {slotDataName} in passthrough:")
+              .AddCode($"\t{variable} = {fromPassthrough}")
+              .AddNewLine()
+              .GetText();
+    }
+
+    public static string CreateGoalCondition(string stateLambda)
+    {
+        return $"self.multiworld.completion_condition[self.player] = lambda state: {stateLambda}";
+    }
+    
+    public static string CreateGoalCondition(string rule, RuleFactory factory)
+    {
+        return $"self.multiworld.completion_condition[self.player] = lambda state: {factory.GenerateCompiledRule(rule)}";
     }
 }

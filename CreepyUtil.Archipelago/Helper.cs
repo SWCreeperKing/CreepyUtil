@@ -6,10 +6,18 @@ namespace CreepyUtil.Archipelago;
 
 public static class Helper
 {
-    public static bool RunWithTimeout(this Task task, TimeSpan timeout)
+    public static bool RunWithTimeout(this Task task, TimeSpan timeout, Action<Exception>? onError)
     {
-        task.Start();
-        return Task.WaitAny([task], timeout) != -1;
+        try
+        {
+            task.Start();
+            return Task.WaitAny([task], timeout) != -1;
+        }
+        catch (Exception e)
+        {
+            onError?.Invoke(e);
+        }
+        return false;
     }
 
     public static int SortNumber(this HintStatus status)
@@ -88,10 +96,4 @@ public static class Helper
     }
 
     public static string[] SplitAndTrim(this string text, char delimiter) => text.Split(delimiter).Select(s => s.Trim()).Where(s => s is not "").ToArray();
-
-    public static string Repeat(this char text, int count) => string.Join("", Enumerable.Repeat(text, count));
-    public static string Repeat(this string text, int count) => string.Join("", Enumerable.Repeat(text, count));
-    public static string[] ShredString(this string text) => text.Replace("\r", "").Split('\n');
-    public static string Surround(this string text, char surrounding) => $"{surrounding}{text}{surrounding}";
-    public static string Surround(this string text, string surrounding) => $"{surrounding}{text}{surrounding}";
 }

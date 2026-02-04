@@ -26,7 +26,7 @@ public partial class WorldFactory(string gameName)
                        "authors": [{{string.Join(", ", authors.Select(s => s.Surround('"')))}}]
                      }
                      """;
-        
+
         File.WriteAllText($"{OutputDirectory}archipelago.json", json);
     }
 }
@@ -39,6 +39,8 @@ public class WorldInitFactory
                                                 from .Options import *
                                                 from .Items import *
                                                 from .Regions import *
+                                                from .Settings import *
+                                                from typing import *
                                                 """
 )
 {
@@ -56,6 +58,7 @@ public class WorldInitFactory
          .AddVariable(new Variable("game", worldFactory.GameName.Surround('"')))
          .AddVariable(new Variable("options_dataclass", $"{worldFactory.GameName.Replace(" ", "")}Options"))
          .AddVariable(new Variable("options", "", $"{worldFactory.GameName.Replace(" ", "")}Options"))
+         .AddVariable(new Variable("settings", type: $"ClassVar[{worldFactory.GameName.Replace(" ", "")}Settings]"))
          .AddVariable(
               new Variable("location_name_to_id", "{value: location_dict.index(value) + 1 for value in location_dict}")
           )
@@ -116,22 +119,26 @@ public class WorldInitFactory
     }
 
     public WorldInitFactory AddUseUniversalTrackerPassthrough(
-        Action<CodeBlockFactory>? utBlock = null, bool addOptionsFromSlotData = true
+        Action<CodeBlockFactory>? utBlock = null, bool addOptionsFromSlotData = true, bool yamlNeeded = true
     )
     {
         var ut = new CodeBlockFactory()
                 .AddCode($"if {WorldFactory.GameName.Surround('"')} not in self.multiworld.re_gen_passthrough: return")
                 .AddCode($"passthrough = self.multiworld.re_gen_passthrough[{WorldFactory.GameName.Surround('"')}]");
 
+        WorldClass.AddVariable(new Variable("ut_can_gen_without_yaml", yamlNeeded ? "False" : "True"));
+        
         if (addOptionsFromSlotData)
         {
             foreach (var option in WorldFactory.GetOptionsFactory().OptionNames.Keys)
             {
-                ut.AddCode($"if {option.ToLower().Replace(" ", "_").Surround('"')} in passthrough:")
-                  .AddCode(
-                       $"\tself.options.{option.ToLower().Replace(" ", "_")} = {option.Replace(" ", "")}(passthrough[{option.ToLower().Replace(" ", "_").Surround('"')}])"
-                   )
-                  .AddNewLine();
+                ut.AddCode(
+                    PremadePython.CreateUtPassthrough(
+                        option.ToLower().Replace(" ", "_").Surround('"'),
+                        $"self.options.{option.ToLower().Replace(" ", "_")}",
+                        $"{option.Replace(" ", "")}(passthrough[{option.ToLower().Replace(" ", "_").Surround('"')}])"
+                    )
+                );
             }
         }
 
@@ -159,7 +166,8 @@ public class WorldInitFactory
 
     public WorldInitFactory UseSetRules(Action<MethodFactory>? action = null)
     {
-        SetRules ??= new MethodFactory("set_rules").AddParam("self");
+        SetRules ??= new MethodFactory("set_rules").AddParam("self")
+                                                   .AddCode(new Variable("player", "self.player"));
         action?.Invoke(SetRules);
         return this;
     }

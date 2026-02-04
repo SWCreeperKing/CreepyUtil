@@ -19,10 +19,10 @@ public partial class ApClient
     private int ItemsReceivedTracker;
 
     public string? Seed => Session?.RoomState.Seed;
-    public int LocationCount =>  Locations.Count();
+    public int LocationCount => Locations.Count();
     public int LocationsCheckedCount => (int)Session?.Locations.AllLocationsChecked.Count!;
     public string[] LocationsChecked => Session?.Locations.AllLocationsChecked.Select(l => Locations[l]).ToArray()!;
-    
+
     private Dictionary<string, Dictionary<long, string>> _ItemIdToName = [];
     private Dictionary<string, Dictionary<long, string>> _LocationIdToName = [];
 
@@ -45,30 +45,42 @@ public partial class ApClient
 
     public bool SendLocation(string id)
     {
-        if (!MissingLocations.Contains(id)) return true;
-        return IsConnected && new Task(() =>
+        try
         {
-            if (MissingLocations.Count == 0) return;
-            Session?.Locations.CompleteLocationChecks(Locations[id]);
-            MissingLocations.Remove(id);
-            ItemsSentNotification?.Invoke(id);
-        }).RunWithTimeout(ServerTimeout);
+            if (!MissingLocations.Contains(id)) return true;
+            return IsConnected && new Task(() =>
+                {
+                    if (MissingLocations.Count == 0) return;
+                    Session?.Locations.CompleteLocationChecks(Locations[id]);
+                    MissingLocations.Remove(id);
+                    ItemsSentNotification?.Invoke(id);
+                }
+            ).RunWithTimeout(ServerTimeout, OnErrorReceived);
+        }
+        catch (Exception e) { OnErrorReceived?.Invoke(e); }
+        return false;
     }
 
     public bool SendLocations(string[] ids)
     {
-        ids = ids.Where(id => MissingLocations.Contains(id)).ToArray();
-        if (ids.Length == 0) return true;
-        return IsConnected && new Task(() =>
+        try
         {
-            if (MissingLocations.Count == 0) return;
-            Session?.Locations.CompleteLocationChecks(ids.Select<string, long>(id => Locations[id]).ToArray());
-            foreach (var loc in ids)
-            {
-                MissingLocations.Remove(loc);
-                ItemsSentNotification?.Invoke(loc);
-            }
-        }).RunWithTimeout(ServerTimeout);
+            ids = ids.Where(id => MissingLocations.Contains(id)).ToArray();
+            if (ids.Length == 0) return true;
+            return IsConnected && new Task(() =>
+                {
+                    if (MissingLocations.Count == 0) return;
+                    Session?.Locations.CompleteLocationChecks(ids.Select(id => Locations[id]).ToArray());
+                    foreach (var loc in ids)
+                    {
+                        MissingLocations.Remove(loc);
+                        ItemsSentNotification?.Invoke(loc);
+                    }
+                }
+            ).RunWithTimeout(ServerTimeout, OnErrorReceived);
+        }
+        catch (Exception e) { OnErrorReceived?.Invoke(e); }
+        return false;
     }
 
     public ScoutedItemInfo? ScoutLocation(string id)
@@ -87,11 +99,13 @@ public partial class ApClient
         for (var i = 0; i < PlayerNames.Length; i++)
         {
             var i1 = i;
-            Session?.DataStorage.TrackClientStatus(state =>
-            {
-                PlayerStates[i1] = state;
-                OnPlayerStateChanged?.Invoke(i1);
-            }, true, i1);
+            Session?.DataStorage.TrackClientStatus(
+                state =>
+                {
+                    PlayerStates[i1] = state;
+                    OnPlayerStateChanged?.Invoke(i1);
+                }, true, i1
+            );
         }
     }
 
@@ -107,7 +121,7 @@ public partial class ApClient
         {
             itemName = _ItemIdToName[game][id] = Session!.Items.GetItemName(id, PlayerGames[playerSlot]);
         }
-        
+
         return itemName;
     }
 
@@ -121,9 +135,10 @@ public partial class ApClient
 
         if (!dict.TryGetValue(id, out var location))
         {
-            location = _LocationIdToName[game][id] = Session!.Locations.GetLocationNameFromId(id, PlayerGames[playerSlot]);
+            location = _LocationIdToName[game][id]
+                = Session!.Locations.GetLocationNameFromId(id, PlayerGames[playerSlot]);
         }
-        
+
         return location;
     }
 
@@ -132,10 +147,7 @@ public partial class ApClient
     public T? GetFromStorage<T>(string key, Scope scope = Scope.Slot, T? def = default)
     {
         T? data;
-        try
-        {
-            data = JsonConvert.DeserializeObject<T>(Session!.DataStorage[scope, key].To<string>())!;
-        }
+        try { data = JsonConvert.DeserializeObject<T>(Session!.DataStorage[scope, key].To<string>())!; }
         catch
         {
             //ignore

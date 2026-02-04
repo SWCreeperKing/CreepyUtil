@@ -31,7 +31,7 @@ public partial class ApClient
         {
             _ServerTimeout = value;
             // todo: EWWW static
-            ArchipelagoSession.ArchipelagoConnectionTimeoutInSeconds = (int) value.TotalSeconds;
+            ArchipelagoSession.ArchipelagoConnectionTimeoutInSeconds = (int)value.TotalSeconds;
         }
     }
 
@@ -58,11 +58,14 @@ public partial class ApClient
     public event Action<string>? ItemsSentNotification;
     public event Action<ReadOnlyCollection<long>>? CheckedLocationsUpdated;
     public event ArchipelagoSocketHelperDelagates.ErrorReceivedHandler? OnConnectionErrorReceived;
+    public event Action<Exception>? OnErrorReceived;
 
     public ApClient(TimeSpan? timeout = null) => ServerTimeout = timeout ?? new TimeSpan(0, 0, 10);
 
-    public string[]? TryConnect(LoginInfo info, string gameName, ItemsHandlingFlags flags,
-        Version? version = null, ArchipelagoTag[]? tags = null, bool requestSlotData = true)
+    public string[]? TryConnect(
+        LoginInfo info, string gameName, ItemsHandlingFlags flags,
+        Version? version = null, ArchipelagoTag[]? tags = null, bool requestSlotData = true
+    )
     {
         Info = info;
         try
@@ -72,9 +75,11 @@ public partial class ApClient
             Session = ArchipelagoSessionFactory.CreateSession(Info.Address, Info.Port);
             (Socket = Session.Socket).ErrorReceived += (e, s) => OnConnectionErrorReceived?.Invoke(e, s);
 
-            var result = Session.TryConnectAndLogin(gameName, Info.Slot, flags, version,
+            var result = Session.TryConnectAndLogin(
+                gameName, Info.Slot, flags, version,
                 tags?.Select(tag => tag.StringTag()).ToArray(), null, Info.Password,
-                requestSlotData);
+                requestSlotData
+            );
 
             if (!result.Successful) return ((LoginFailure)result).Errors;
             PlayerSlot = Session.Players.ActivePlayer.Slot;
@@ -88,11 +93,12 @@ public partial class ApClient
             ItemsReceivedCounter = 0;
 
             Session.DataStorage.TrackHints(hints
-                =>
-            {
-                WaitingHints = hints;
-                HintsAwaitingUpdate = true;
-            });
+                    =>
+                {
+                    WaitingHints = hints;
+                    HintsAwaitingUpdate = true;
+                }
+            );
 
             CommandHandler = new ApCommandHandler(this);
             Session.Socket.PacketReceived += packet =>
@@ -107,8 +113,10 @@ public partial class ApClient
 
                         if (message.Message.StartsWith($"@{PlayerName} "))
                         {
-                            CommandHandler.RunCommand(message,
-                                message.Message.Replace($"@{PlayerName} ", "").Split(' '));
+                            CommandHandler.RunCommand(
+                                message,
+                                message.Message.Replace($"@{PlayerName} ", "").Split(' ')
+                            );
                         }
 
                         break;
@@ -132,14 +140,8 @@ public partial class ApClient
                             if (source == PlayerName && ExcludeBouncedPacketsFromSelf) return;
                             var trap = (string)bouncedPacket.Data["trap_name"]!;
 
-                            if (TrapLink.ContainsKey(trap))
-                            {
-                                TrapLink[trap](source);
-                            }
-                            else
-                            {
-                                OnUnregisteredTrapLinkReceived?.Invoke(source, trap);
-                            }
+                            if (TrapLink.ContainsKey(trap)) { TrapLink[trap](source); }
+                            else { OnUnregisteredTrapLinkReceived?.Invoke(source, trap); }
                         }
 
                         if (bouncedPacket.Tags.Contains("RingLink"))
@@ -172,7 +174,8 @@ public partial class ApClient
 
             Session.Locations.CheckedLocationsUpdated += locations => CheckedLocationsUpdated?.Invoke(locations);
 
-            if (requestSlotData) {
+            if (requestSlotData)
+            {
                 var slotDataTask = Session!.DataStorage.GetSlotDataAsync();
                 slotDataTask.ContinueWith(slotData => SlotData = slotData.Result);
                 slotDataTask.Wait();
@@ -184,15 +187,12 @@ public partial class ApClient
 
             MissingLocations = Session?.Locations.AllMissingLocations.Select(l => Locations[l]).ToList()!;
 
-            OnConnectionEvent?.Invoke(this);
             IsConnected = true;
             Tags = new TagManager(Session!);
+            OnConnectionEvent?.Invoke(this);
             return null;
         }
-        catch (Exception e)
-        {
-            return [e.Message, e.StackTrace!];
-        }
+        catch (Exception e) { return [e.Message, e.StackTrace!]; }
     }
 
     public void GetLookups(string game, out TwoWayLookup<long, string> locations, out TwoWayLookup<long, string> items)
@@ -217,14 +217,7 @@ public partial class ApClient
     public void TryDisconnect()
     {
         IsConnected = false;
-        new Task(() =>
-            {
-                lock (Session!)
-                {
-                    Session.Socket.DisconnectAsync();
-                }
-            })
-           .RunWithTimeout(ServerTimeout);
+        Session!.Socket.DisconnectAsync();
         Session = null;
     }
 

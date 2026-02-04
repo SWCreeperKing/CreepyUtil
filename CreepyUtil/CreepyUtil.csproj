@@ -9,8 +9,8 @@
         <!--        <RepositoryType>git</RepositoryType>-->
         <!--        <PackageProjectUrl>https://github.com/SWCreeperKing/RayWork</PackageProjectUrl>-->
         <!--        <RepositoryUrl>https://github.com/SWCreeperKing/RayWork</RepositoryUrl>-->
-        <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <!--        <License>https://github.com/SWCreeperKing/RayWork/LICENSE</License>-->
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageTags>util utility</PackageTags>
 
         <PackageId>CreepyUtil</PackageId>
