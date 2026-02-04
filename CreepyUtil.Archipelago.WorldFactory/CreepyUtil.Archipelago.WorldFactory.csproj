@@ -18,9 +18,9 @@
         <IncludeSymbols>true</IncludeSymbols>
         <SymbolPackageFormat>snupkg</SymbolPackageFormat>
         <RepositoryType>git</RepositoryType>
-<!--        <PackageProjectUrl>https://github.com/SWCreeperKing/RayWork</PackageProjectUrl>-->
-<!--        <RepositoryUrl>https://github.com/SWCreeperKing/RayWork</RepositoryUrl>-->
-<!--        <License>https://github.com/SWCreeperKing/RayWork/LICENSE</License>-->
+        <PackageProjectUrl>https://github.com/SWCreeperKing/CreepyUtil/tree/master/CreepyUtil.Archipelago.WorldFactoryk</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/SWCreeperKing/CreepyUtil/tree/master/CreepyUtil.Archipelago.WorldFactory</RepositoryUrl>
+        <License>https://github.com/SWCreeperKing/CreepyUtil/blob/master/LICENSE</License>
     </PropertyGroup>
 
 </Project>
