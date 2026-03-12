@@ -223,7 +223,7 @@ public class ForLoopFactory(string variable, string collection) : TCodeBlockFact
     public override string GetText(int indentLevel = 0) => GetFor(indentLevel);
 }
 
-public class IfFactory(string condition) : TCodeBlockFactory<ForLoopFactory>
+public class IfFactory(string condition) : TCodeBlockFactory<IfFactory>
 {
     private List<ElifFactory> ElIfs = [];
     private CodeBlockFactory? Else;
@@ -251,16 +251,16 @@ public class IfFactory(string condition) : TCodeBlockFactory<ForLoopFactory>
 
         if (Else is not null)
         {
-            sb.Append('\n').Append(indentLevel).Append("else:\n").Append(Else.GetText(indentLevel + 1));
+            sb.Append('\n').Append(indent).Append("else:\n").Append(Else.GetText(indentLevel + 1));
         }
 
-        return $"{'\t'.Repeat(indentLevel)}if {condition}:\n{GetBlock(indentLevel + 1)}";
+        return sb.ToString();
     }
 
     public override string GetText(int indentLevel = 0) => GetIf(indentLevel);
 }
 
-public class ElifFactory(string condition) : TCodeBlockFactory<ForLoopFactory>
+public class ElifFactory(string condition) : TCodeBlockFactory<ElifFactory>
 {
     public string GetIf(int indentLevel = 0)
     {
@@ -391,6 +391,7 @@ public class ListedVariableAsMappedVariable<T>
 public class ListedVariable<T>
     (string name, IEnumerable<T>? value = null, string type = "") : PythonVariable<IEnumerable<T>?>(name, value, type)
 {
+    public IEnumerable<T> Data = value;
     public virtual char[] StartEndChars { get; } = ['[', ']'];
 
     public override bool HasValue(IEnumerable<T>? value) => value is not null;
@@ -412,6 +413,7 @@ public class ListedVariable<T>
     }
 
     public virtual string ParseValue(T value) => value.ToString();
+    
 }
 
 public abstract class PythonVariable<T>(string name, T value, string type = "") : IPythonVariable

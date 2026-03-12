@@ -2,11 +2,12 @@
 
     <PropertyGroup>
         <Authors>SW_CreeperKing</Authors>
-        <TargetFramework>net10.0</TargetFramework>
+        <TargetFrameworks>net6.0;net472</TargetFrameworks>
+        <LangVersion>12</LangVersion>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-        <Version>0.1.0</Version>
+        <Version>0.1.22</Version>
         <Title>SW_CreeperKing's Archipelago World Factory Utility</Title>
         <Description>A Utility for reading in a CSV and creating ApWorlds</Description>
         <PackageId>CreepyUtil.Archipelago.WorldFactory</PackageId>
@@ -19,8 +20,13 @@
         <SymbolPackageFormat>snupkg</SymbolPackageFormat>
         <RepositoryType>git</RepositoryType>
         <PackageProjectUrl>https://github.com/SWCreeperKing/CreepyUtil/tree/master/CreepyUtil.Archipelago.WorldFactoryk</PackageProjectUrl>
+        <ProjectReadmeFile>README.md</ProjectReadmeFile>
         <RepositoryUrl>https://github.com/SWCreeperKing/CreepyUtil/tree/master/CreepyUtil.Archipelago.WorldFactory</RepositoryUrl>
         <License>https://github.com/SWCreeperKing/CreepyUtil/blob/master/LICENSE</License>
     </PropertyGroup>
 
+    <ItemGroup>
+        <None Include="README.md" Pack="true"/>
+    </ItemGroup>
+    
 </Project>

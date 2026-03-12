@@ -96,4 +96,9 @@ public static class Helper
     }
 
     public static string[] SplitAndTrim(this string text, char delimiter) => text.Split(delimiter).Select(s => s.Trim()).Where(s => s is not "").ToArray();
+    
+    public static HashSet<T> ToHashSet<T>(this IEnumerable<T> source, IEqualityComparer<T>? comparer = null)
+    {
+        return new HashSet<T>(source, comparer);
+    }
 }

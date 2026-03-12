@@ -15,7 +15,7 @@
 
         <PackageId>CreepyUtil.ClrCnsl</PackageId>
         <Description>Random Utilities</Description>
-        <PackageVersion>0.1</PackageVersion>
+        <PackageVersion>0.2</PackageVersion>
         <PackageReleaseNotes>Dispose BEFORE receiving error</PackageReleaseNotes>
 
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>

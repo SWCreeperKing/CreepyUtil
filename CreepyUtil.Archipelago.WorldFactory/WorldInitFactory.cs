@@ -105,7 +105,8 @@ public class WorldInitFactory
     {
         GenerateEarly ??= new MethodFactory("generate_early")
                          .AddParam("self")
-                         .AddCode("check_options(self)");
+                         .AddCode("check_options(self)")
+                         .AddCode("options = self.options");
 
         action?.Invoke(GenerateEarly);
         return this;
@@ -127,7 +128,7 @@ public class WorldInitFactory
                 .AddCode($"passthrough = self.multiworld.re_gen_passthrough[{WorldFactory.GameName.Surround('"')}]");
 
         WorldClass.AddVariable(new Variable("ut_can_gen_without_yaml", yamlNeeded ? "False" : "True"));
-        
+
         if (addOptionsFromSlotData)
         {
             foreach (var option in WorldFactory.GetOptionsFactory().OptionNames.Keys)
@@ -135,7 +136,7 @@ public class WorldInitFactory
                 ut.AddCode(
                     PremadePython.CreateUtPassthrough(
                         option.ToLower().Replace(" ", "_").Surround('"'),
-                        $"self.options.{option.ToLower().Replace(" ", "_")}",
+                        $"options.{option.ToLower().Replace(" ", "_")}",
                         $"{option.Replace(" ", "")}(passthrough[{option.ToLower().Replace(" ", "_").Surround('"')}])"
                     )
                 );
@@ -144,10 +145,21 @@ public class WorldInitFactory
 
         utBlock?.Invoke(ut);
 
-        UseGenerateEarly(factory => factory.AddCode("if hasattr(self.multiworld, \"re_gen_passthrough\"):")
-                                           .AddCode(ut.GetText(1))
-        );
-
+        if (GenerateEarly is null)
+        {
+            GenerateEarly ??= new MethodFactory("generate_early")
+                             .AddParam("self")
+                             .AddCode("options = self.options")
+                             .AddCode("if hasattr(self.multiworld, \"re_gen_passthrough\"):")
+                             .AddCode(ut.GetText(1))
+                             .AddCode("check_options(self)");
+        }
+        else
+        {
+            UseGenerateEarly(factory => factory.AddCode("if hasattr(self.multiworld, \"re_gen_passthrough\"):")
+                                               .AddCode(ut.GetText(1))
+            );
+        }
         return this;
     }
 

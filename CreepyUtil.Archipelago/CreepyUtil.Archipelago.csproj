@@ -4,7 +4,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <LangVersion>12</LangVersion>
-        <TargetFrameworks>net6.0;net472</TargetFrameworks>
+        <TargetFrameworks>net6.0;net472;netstandard2.0</TargetFrameworks>
         
 <!--    Directory Variables    -->
         <IlRepackCommand>ilrepack /out:BundledApClient.dll CreepyUtil.Archipelago.dll Newtonsoft.Json.dll Archipelago.MultiClient.Net.dll</IlRepackCommand>
@@ -23,6 +23,9 @@
         <SlimeRancher>$(SteamLibraryD)\Slime Rancher</SlimeRancher>
         <WidgetInc>$(SteamLibraryF)\WidgetInc</WidgetInc>
         <TheWereCleaner>$(SteamLibraryD)\The WereCleaner</TheWereCleaner>
+        <ConbunnCardboard>$(SteamLibraryF)\Conbunn Cardboard</ConbunnCardboard>
+        <PlagueInc>$(SteamLibraryF)\PlagueInc</PlagueInc>
+        <Poco>$(SteamLibraryD)\Poco</Poco>
     </PropertyGroup>
     
     <ItemGroup>
@@ -32,10 +35,16 @@
         <Reference Include="Archipelago.MultiClient.Net" Condition="'$(TargetFramework)' == 'net472'">
             <HintPath>Lib 4.5\Archipelago.MultiClient.Net.dll</HintPath>
         </Reference>
+        <Reference Include="Archipelago.MultiClient.Net" Condition="'$(TargetFramework)' == 'netstandard2.0'">
+            <HintPath>Lib 4.5\Archipelago.MultiClient.Net.dll</HintPath>
+        </Reference>
         <Reference Include="Newtonsoft.Json">
             <HintPath>Lib\Newtonsoft.Json.dll</HintPath>
         </Reference>
         <Reference Include="Newtonsoft.Json" Condition="'$(TargetFramework)' == 'net472'">
+            <HintPath>Lib 4.5\Newtonsoft.Json.dll</HintPath>
+        </Reference>
+        <Reference Include="Newtonsoft.Json" Condition="'$(TargetFramework)' == 'netstandard2.0'">
             <HintPath>Lib 4.5\Newtonsoft.Json.dll</HintPath>
         </Reference>
     </ItemGroup>
@@ -75,5 +84,18 @@
         
         <Copy SourceFiles="$(ProjectBin)\Debug\net472/BundledApClient.dll" DestinationFolder="$(TheWereCleaner)\mod dev\Werepelago\Werepelago\Lib"/>
         <Copy SourceFiles="$(ProjectBin)\Debug\net472/BundledApClient.dll" DestinationFolder="$(TheWereCleaner)\Mods\SW_CreeperKing.Werepelago\Lib"/>
+        
+        <Copy SourceFiles="$(ProjectBin)\Debug\net472/BundledApClient.dll" DestinationFolder="$(PlagueInc)\mod dev\Plaguepelago\Plaguepelago\Lib"/>
+        <Copy SourceFiles="$(ProjectBin)\Debug\net472/BundledApClient.dll" DestinationFolder="$(PlagueInc)\Mods\SW_CreeperKing.Plaguepelago\Lib"/>
+        
+        <Copy SourceFiles="$(ProjectBin)\Debug\net472/BundledApClient.dll" DestinationFolder="$(Poco)\mod dev\Pocopelago\Pocopelago\Lib"/>
+        <Copy SourceFiles="$(ProjectBin)\Debug\net472/BundledApClient.dll" DestinationFolder="$(Poco)\UserLibs"/>
+    </Target>
+    
+    <Target Name="AfterBuild2" AfterTargets="Build" Condition="'$(TargetFramework)' == 'netstandard2.0'">
+        <Exec WorkingDirectory="$(ProjectBin)\Debug\netstandard2.0" Command="$(IlRepackCommand)"/>
+        
+        <Copy SourceFiles="$(ProjectBin)\Debug\netstandard2.0/BundledApClient.dll" DestinationFolder="$(ConbunnCardboard)\mod dev\Conbunnipelago\Conbunnipelago\Lib"/>
+        <Copy SourceFiles="$(ProjectBin)\Debug\netstandard2.0/BundledApClient.dll" DestinationFolder="$(ConbunnCardboard)\Mods\SW_CreeperKing.Conbunnipelago\Lib"/>
     </Target>
 </Project>

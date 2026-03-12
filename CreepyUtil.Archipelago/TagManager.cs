@@ -6,7 +6,7 @@ namespace CreepyUtil.Archipelago;
 public class TagManager
 {
     private ArchipelagoSession Session;
-    private HashSet<ArchipelagoTag> Tags;
+    private HashSet<ArchipelagoTag> Tags = [];
 
     public TagManager(ArchipelagoSession session)
     {

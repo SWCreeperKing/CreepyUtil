@@ -7,10 +7,7 @@ public partial class WorldFactory
     public ItemFactory GetItemFactory(string link = "No Link Given")
     {
         if (ItemFactory is not null) return ItemFactory;
-        ItemFactory = new ItemFactory(this)
-        {
-            ItemGeneratorLink = link,
-        };
+        ItemFactory = new ItemFactory(this) { ItemGeneratorLink = link, };
 
         return ItemFactory;
     }
@@ -20,12 +17,9 @@ public class ItemFactory(WorldFactory worldFactory)
 {
     private static readonly Dictionary<ItemClassification, string> ClassificationMap = new()
     {
-        [ItemClassification.Filler] = "filler",
-        [ItemClassification.Progression] = "progression",
-        [ItemClassification.Useful] = "useful",
-        [ItemClassification.Trap] = "trap",
-        [ItemClassification.SkipBalancing] = "skip_balancing",
-        [ItemClassification.Deprioritized] = "deprioritized",
+        [ItemClassification.Filler] = "filler", [ItemClassification.Progression] = "progression",
+        [ItemClassification.Useful] = "useful", [ItemClassification.Trap] = "trap",
+        [ItemClassification.SkipBalancing] = "skip_balancing", [ItemClassification.Deprioritized] = "deprioritized",
         [ItemClassification.ProgressionDeprioritizedSkipBalancing] = "progression_deprioritized_skip_balancing",
         [ItemClassification.ProgressionSkipBalancing] = "progression_skip_balancing",
         [ItemClassification.ProgressionDeprioritized] = "progression_deprioritized",
@@ -48,33 +42,58 @@ public class ItemFactory(WorldFactory worldFactory)
         ProgressionDeprioritized,
     }
 
-    public string ItemGeneratorLink = "No Link Given"; // link to (preferably github) of where you use the location generator, inserts it into the .py
+    public string
+        ItemGeneratorLink
+            = "No Link Given"; // link to (preferably github) of where you use the location generator, inserts it into the .py
 
     private WorldFactory WorldFactory = worldFactory;
 
+    private List<string> AllItems = [];
     private HashSet<string> ItemMap = [];
     private List<IPythonVariable> ItemVariables = [];
     private MethodFactory? CreateItems;
 
     public ItemFactory AddItem(string item, ItemClassification classification, bool stringify = true)
     {
-        ItemMap.Add($"{(stringify ? item.Surround('\"') : item)}: ItemClassification.{ClassificationMap[classification]}");
+        var realItem = stringify ? item.Surround('\"') : item;
+        AllItems.Add(realItem);
+        ItemMap.Add($"{realItem}: ItemClassification.{ClassificationMap[classification]}");
         return this;
     }
 
-    public ItemFactory AddItems(ItemClassification classification, bool stringify = true, params string[] items) => items.Aggregate(this, (factory, s)
-        => factory.AddItem(s, classification, stringify));
+    public ItemFactory AddItems(ItemClassification classification, bool stringify = true, params string[] items)
+        => items.Aggregate(
+            this, (factory, s)
+                => factory.AddItem(s, classification, stringify)
+        );
 
-    public ItemFactory AddItemCountVariable(string name, Dictionary<string, int> itemsAndCount, ItemClassification classification, bool stringify = true)
+    public ItemFactory AddItemCountVariable(
+        string name, Dictionary<string, int> itemsAndCount, ItemClassification classification, bool stringify = true,
+        bool addToList = true
+    )
     {
-        ItemVariables.Add(new MappedVariable<string, int>(name, stringify ? itemsAndCount.ToDictionary(kv => kv.Key.Surround('"'), kv => kv.Value) : itemsAndCount));
+        var map = new MappedVariable<string, int>(
+            name, stringify ? itemsAndCount.ToDictionary(kv => kv.Key.Surround('"'), kv => kv.Value) : itemsAndCount
+        );
+
+        ItemVariables.Add(map);
+        
+        if (!addToList) return this;
+        AllItems.AddRange(itemsAndCount.Keys);
         ItemMap.Add($"**{{item: ItemClassification.{ClassificationMap[classification]} for item in {name}}}");
         return this;
     }
 
-    public ItemFactory AddItemListVariable(string name, ItemClassification classification, bool stringify = true, params string[] list)
+    public ItemFactory AddItemListVariable(
+        string name, ItemClassification classification, bool stringify = true,
+        bool addToList = true, params string[] list
+    )
     {
-        ItemVariables.Add(new StringArray(name, list, stringify: stringify));
+        var arr = new StringArray(name, list, stringify: stringify);
+        ItemVariables.Add(arr);
+        
+        if (!addToList) return this;
+        AllItems.AddRange(list);
         ItemMap.Add($"**{{item: ItemClassification.{ClassificationMap[classification]} for item in {name}}}");
         return this;
     }
@@ -89,13 +108,17 @@ public class ItemFactory(WorldFactory worldFactory)
         return this;
     }
 
-    public void GenerateItemsFile(string fileOutput = "Items.py",
+    public void GenerateItemsFile(
+        out string[] itemsArray,
+        string fileOutput = "Items.py",
         string imports = """
                          from BaseClasses import ItemClassification
                          from .Locations import *
                          from .Options import *
-                         """)
+                         """
+    )
     {
+        itemsArray = AllItems.ToArray();
         var itemsPy = new PythonFactory()
                      .AddObject(new Comment($"File is Auto-generated, see: [{ItemGeneratorLink}]"))
                      .AddImports(imports)

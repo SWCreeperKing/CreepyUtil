@@ -1,4 +1,4 @@
-﻿namespace CreepyUtil.Archipelago;
+﻿namespace CreepyUtil.Archipelago.WorldFactory;
 
 public class CsvParser
 {

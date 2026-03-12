@@ -19,14 +19,13 @@ public partial class ApClient
     private int ItemsReceivedTracker;
 
     public string? Seed => Session?.RoomState.Seed;
-    public int LocationCount => Locations.Count();
+    public int LocationCount => (int)Session?.Locations.AllLocations.Count!;
     public int LocationsCheckedCount => (int)Session?.Locations.AllLocationsChecked.Count!;
     public string[] LocationsChecked => Session?.Locations.AllLocationsChecked.Select(l => Locations[l]).ToArray()!;
 
     private Dictionary<string, Dictionary<long, string>> _ItemIdToName = [];
     private Dictionary<string, Dictionary<long, string>> _LocationIdToName = [];
 
-    // public ItemInfo[] GetOutstandingItems(bool newOnly = false)
     public ItemInfo[] GetOutstandingItems()
     {
         if (ItemsReceivedCounter >= Session!.Items.AllItemsReceived.Count) return [];

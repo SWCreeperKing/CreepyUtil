@@ -9,8 +9,7 @@ public partial class WorldFactory
         if (RuleFactory is not null) return RuleFactory;
         RuleFactory = new RuleFactory(this)
         {
-            LogicGeneratorLink = link,
-            LogicCompiler = logicCompiler ?? new DefaultLogicCompiler(),
+            LogicGeneratorLink = link, LogicCompiler = logicCompiler ?? new DefaultLogicCompiler(),
         };
 
         return RuleFactory;
@@ -25,21 +24,40 @@ public class RuleFactory(WorldFactory worldFactory)
 
     private WorldFactory WorldFactory = worldFactory;
     private Dictionary<string, MethodFactory> LogicMethods = [];
+
     private Dictionary<string, string> LogicMethodTokens = [];
-    private HashSet<string> LogicRules = [];
+
+    // private HashSet<string> LogicRules = [];
+    private Dictionary<string, string> LogicRuleAssociations = [];
 
     public ILogicCompiler LogicCompiler = new DefaultLogicCompiler();
 
-    public RuleFactory AddLogicFunction(string token, string methodName, IEnumerable<string> code, params string[] parameters) => AddLogicFunction(token, methodName, string.Join("\n\t", code), parameters);
+    public RuleFactory AddLogicFunction(
+        string token, string methodName, IEnumerable<string> code, params string[] parameters
+    ) => AddLogicFunction(token, methodName, string.Join("\n\t", code), parameters);
 
     public RuleFactory AddLogicFunction(string token, string methodName, string code, params string[] parameters)
     {
         LogicMethodTokens[token] = methodName;
-        LogicMethods[methodName] = new MethodFactory(methodName).AddParams(DefaultParams).AddParams(parameters).SetReturn("bool").AddCode(code);
+        LogicMethods[methodName] = new MethodFactory(methodName).AddParams(DefaultParams).AddParams(parameters)
+                                                                .SetReturn("bool").AddCode(code);
         return this;
     }
 
-    public RuleFactory AddCompoundLogicFunction(string token, string methodName, string rule, params string[] parameters)
+    public RuleFactory AddLogicFunction(
+        string token, string methodName, Action<MethodFactory> code, params string[] parameters
+    )
+    {
+        LogicMethodTokens[token] = methodName;
+        LogicMethods[methodName] = new MethodFactory(methodName).AddParams(DefaultParams).AddParams(parameters)
+                                                                .SetReturn("bool");
+        code(LogicMethods[methodName]);
+        return this;
+    }
+
+    public RuleFactory AddCompoundLogicFunction(
+        string token, string methodName, string rule, params string[] parameters
+    )
     {
         AddLogicFunction(token, methodName, $"return {GenerateCompiledRule(rule)}", parameters);
         return this;
@@ -48,13 +66,18 @@ public class RuleFactory(WorldFactory worldFactory)
     public RuleFactory AddLogicRule(string key, string rule)
     {
         if (rule.Trim() is "") return this;
-        LogicRules.Add($"\"{key}\": lambda state: {GenerateCompiledRule(rule)}");
+        LogicRuleAssociations[key] = rule;
         return this;
     }
 
-    public RuleFactory AddLogicRules(Dictionary<string, string> rules) => rules.Aggregate(this, (factory, pair) => factory.AddLogicRule(pair.Key, pair.Value));
-    
-    public void GenerateRulesFile(string fileOutput = "Rules.py", string imports = "import math\nfrom .Locations import *", params string[] extraParams)
+    public RuleFactory AddLogicRules(Dictionary<string, string> rules) => rules.Aggregate(
+        this, (factory, pair) => factory.AddLogicRule(pair.Key, pair.Value)
+    );
+
+    public void GenerateRulesFile(
+        string fileOutput = "Rules.py", string imports = "import math\nfrom .Locations import *",
+        params string[] extraParams
+    )
     {
         var defaultParams = DefaultParams.ToList();
         defaultParams.RemoveAll(s => s is "state");
@@ -64,8 +87,13 @@ public class RuleFactory(WorldFactory worldFactory)
                      .AddParams(extraParams)
                      .AddCode("return {");
 
-        LogicRules.Aggregate(ruleMap, (factory, s) => factory.AddCode($"\t{s},"))
-                  .AddCode("}");
+        LogicRuleAssociations.Aggregate(
+                                  ruleMap,
+                                  (factory, pair) => factory.AddCode(
+                                      $"\t\"{pair.Key}\": lambda state: {GenerateCompiledRule(pair.Value)}"
+                                  )
+                              )
+                             .AddCode("}");
 
         var rulePy = new PythonFactory()
                     .AddObject(new Comment($"File is Auto-generated, see: [{LogicGeneratorLink}]"))
@@ -76,10 +104,12 @@ public class RuleFactory(WorldFactory worldFactory)
         File.WriteAllText($"{WorldFactory.OutputDirectory}{fileOutput}", rulePy.GetText());
     }
 
-    public string GenerateCompiledRule(string rule)
-    {
-        return LogicCompiler.CompileRule(rule.Trim(), LogicMethodTokens, WorldFactory.OnCompilerError);
-    }
+    public string GenerateCompiledRule(string rule) => LogicCompiler.CompileRule(
+        rule.Trim(), LogicMethodTokens, WorldFactory.OnCompilerError
+    );
+
+    public Dictionary<string, string> GetRuleMapAssociations()
+        => LogicRuleAssociations.ToDictionary(kv => kv.Key, kv => kv.Value);
 }
 
 public interface ILogicCompiler
@@ -111,8 +141,8 @@ public class DefaultLogicCompiler : ILogicCompiler
             {
                 var key = split[i];
 
-                if (key is "&&") key = "and";
-                if (key is "||") key = "or";
+                if (key is "&&" or "AND" or "And" or "&") key = "and";
+                if (key is "||" or "OR" or "Or" or "|") key = "or";
                 if (key is "and" or "or" or "(" or ")" || key.All(c => c is '(') || key.All(c => c is ')'))
                 {
                     tokens.Add(key);
@@ -120,10 +150,7 @@ public class DefaultLogicCompiler : ILogicCompiler
                     continue;
                 }
 
-                if (key.StartsWith("("))
-                {
-                    tokens.Add(string.Join("", key.TakeWhile(c => c is '(')));
-                }
+                if (key.StartsWith("(")) { tokens.Add(string.Join("", key.TakeWhile(c => c is '('))); }
 
                 var end = string.Join("", key.Reverse().TakeWhile(c => c is ')'));
                 key = key.TrimStart('(').TrimEnd(')');
@@ -131,7 +158,8 @@ public class DefaultLogicCompiler : ILogicCompiler
                 if (key.Contains('['))
                 {
                     key = key.Split('[')[0];
-                    if (!methodTokens.TryGetValue(key, out var token)) throw new ArgumentException($"Unknown Method Token: [{key}]");
+                    if (!methodTokens.TryGetValue(key, out var token))
+                        throw new ArgumentException($"Unknown Method Token: [{key}]");
                     var listVer = split.ToList();
                     var lastClosing = listVer.FindIndex(i, s => s.EndsWith("]"));
 
@@ -144,7 +172,8 @@ public class DefaultLogicCompiler : ILogicCompiler
                 }
                 else
                 {
-                    if (!methodTokens.TryGetValue(key, out var token)) throw new ArgumentException($"Unknown Method Token: [{key}]");
+                    if (!methodTokens.TryGetValue(key, out var token))
+                        throw new ArgumentException($"Unknown Method Token: [{key}]");
                     tokens.Add($"{token}(state, player)");
                     i++;
                 }

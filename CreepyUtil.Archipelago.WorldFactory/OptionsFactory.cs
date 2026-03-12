@@ -25,11 +25,11 @@ public class OptionsFactory(WorldFactory worldFactory)
                                             .AddDecorator("@dataclass");
 
     private MethodFactory? CheckOptions = null;
-    public Dictionary<string, string> OptionNames { get; private set; } = []; 
+    public Dictionary<string, string> OptionNames { get; private set; } = [];
 
     public OptionsFactory AddOption(string optionName, string description, IOptionType option)
     {
-        OptionNames[optionName] =  option.DataType();
+        OptionNames[optionName] = option.DataType();
         Options.Add(
             new PythonClassFactory(optionName.Replace(" ", ""))
                .AddComment(description)
@@ -38,13 +38,15 @@ public class OptionsFactory(WorldFactory worldFactory)
                .AddVariables(option.GetData())
         );
 
-        OptionClass.AddVariable(new Variable(optionName.Replace(" ", "_").ToLower(), type: optionName.Replace(" ", "")));
+        OptionClass.AddVariable(
+            new Variable(optionName.Replace(" ", "_").ToLower(), type: optionName.Replace(" ", ""))
+        );
         return this;
     }
 
     public OptionsFactory AddCheckOptions(Action<MethodFactory>? checkOptions = null)
     {
-        CheckOptions ??= 
+        CheckOptions ??=
             new MethodFactory("check_options")
                .AddParam("world")
                .AddCode(new Variable("options", "world.options"))
@@ -63,7 +65,7 @@ public class OptionsFactory(WorldFactory worldFactory)
     public void GenerateOptionFile(
         string fileOutput = "Options.py", string imports = """
                                                            from dataclasses import dataclass
-                                                           from Options import Range, Toggle, DefaultOnToggle, PerGameCommonOptions, OptionSet, OptionError, Choice, Accessibility
+                                                           from Options import *
                                                            """
     )
     {
@@ -76,7 +78,9 @@ public class OptionsFactory(WorldFactory worldFactory)
                        .AddObject(
                             new MethodFactory("raise_yaml_error")
                                .AddParams("player_name", "error")
-                               .AddCode($@"raise OptionError(f'\n\n=== {WorldFactory.GameName} YAML ERROR ===\n{WorldFactory.GameName}: {{player_name}} {{error}}, PLEASE FIX YOUR YAML\n\n')")
+                               .AddCode(
+                                    $@"raise OptionError(f'\n\n=== {WorldFactory.GameName} YAML ERROR ===\n{WorldFactory.GameName}: {{player_name}} {{error}}, PLEASE FIX YOUR YAML\n\n')"
+                                )
                         );
 
         File.WriteAllText($"{worldFactory.OutputDirectory}{fileOutput}", optionsPy.GetText());
@@ -89,15 +93,22 @@ public readonly struct Range(int def, int start, int end) : IOptionType
 
     public string Parameter() => "Range";
 
-    public IPythonVariable[] GetData() => [new Variable("range_start", $"{start}"), new Variable("range_end", $"{end}"), new Variable("default", $"{def}")];
+    public IPythonVariable[] GetData() =>
+    [
+        new Variable("range_start", $"{start}"), new Variable("range_end", $"{end}"), new Variable("default", $"{def}")
+    ];
 }
 
-public readonly struct Choice(params string[] choices) : IOptionType
+public readonly struct Choice(int def = 0, params string[] choices) : IOptionType
 {
     public string DataType() => "int";
 
     public string Parameter() => "Choice";
-    public IPythonVariable[] GetData() => choices.Select((s, i) => new Variable($"option_{s}", $"{i}")).ToArray();
+
+    public IPythonVariable[] GetData()
+        => choices.Select((s, i) => new Variable($"option_{s}", $"{i}"))
+                  .Append(new Variable("default", $"{def}"))
+                  .ToArray<IPythonVariable>();
 }
 
 public readonly struct DefaultOnToggle : IOptionType

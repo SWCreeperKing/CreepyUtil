@@ -4,7 +4,7 @@ namespace CreepyUtil.Archipelago.ApClient;
 
 public partial class ApClient
 {
-    private ApCommandHandler CommandHandler;
+    private ApCommandHandler? CommandHandler;
     
     public bool Say(string message)
     {
@@ -17,6 +17,6 @@ public partial class ApClient
         }).RunWithTimeout(ServerTimeout, OnErrorReceived);
     }
     
-    public void RegisterCommand(IApCommandInterface command) => CommandHandler.RegisterCommand(command);
-    public void DeregisterCommand(IApCommandInterface command) => CommandHandler.DeregisterCommand(command);
+    public void RegisterCommand(IApCommandInterface command) => CommandHandler?.RegisterCommand(command);
+    public void DeregisterCommand(IApCommandInterface command) => CommandHandler?.DeregisterCommand(command);
 }
