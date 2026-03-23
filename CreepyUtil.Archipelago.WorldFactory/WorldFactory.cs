@@ -1,6 +1,4 @@
-﻿using System.Text;
-
-namespace CreepyUtil.Archipelago.WorldFactory;
+﻿namespace CreepyUtil.Archipelago.WorldFactory;
 
 // this is to aid in creation of apworlds
 public partial class WorldFactory

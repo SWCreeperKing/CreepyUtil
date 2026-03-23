@@ -135,17 +135,19 @@ public class PythonClassFactory(string className) : IPythonObject
             sb.Append('\n');
         }
 
-        sb.Append("class ").Append(Name).Append('(').Append(string.Join(", ", Parameters)).Append("):\n");
+        sb.Append("\t".Repeat(indentLevel)).Append("class ").Append(Name).Append('(')
+          .Append(string.Join(", ", Parameters)).Append("):\n");
 
         if (Comment.Count != 0)
         {
-            sb.Append("\t\"\"\"");
-            foreach (var line in Comment) { sb.Append("\n\t").Append(line); }
+            var commentIndent = "\t".Repeat(indentLevel + 1);
+            sb.Append(commentIndent).Append("\"\"\"");
+            foreach (var line in Comment) { sb.Append('\n').Append(commentIndent).Append(line); }
 
-            sb.Append("\n\t\"\"\"\n");
+            sb.Append('\n').Append(commentIndent).Append("\"\"\"\n");
         }
 
-        if (Variables.Count == 0 && Methods.Count == 0 && Classes.Count == 0)
+        if (Variables.Count == 0 && Methods.Count == 0 && Classes.Count == 0 && Comment.Count == 0)
         {
             sb.Append('\t'.Repeat(indentLevel + 1)).Append("pass");
             return sb.ToString();
@@ -153,12 +155,9 @@ public class PythonClassFactory(string className) : IPythonObject
 
         if (Classes.Count != 0)
         {
-            foreach (var pyClass in Classes)
-            {
-                sb.Append(pyClass.GetText(indentLevel + 1)).Append("\n\n");
-            }
+            foreach (var pyClass in Classes) { sb.Append(pyClass.GetText(indentLevel + 1)).Append("\n\n"); }
         }
-        
+
         if (Variables.Count != 0)
         {
             foreach (var variable in Variables) { sb.Append(variable.GetVariable(1)).Append('\n'); }
@@ -413,7 +412,7 @@ public class ListedVariable<T>
     }
 
     public virtual string ParseValue(T value) => value.ToString();
-    
+
 }
 
 public abstract class PythonVariable<T>(string name, T value, string type = "") : IPythonVariable

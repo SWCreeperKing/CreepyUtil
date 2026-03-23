@@ -34,6 +34,7 @@ public class RegionFactory(WorldFactory worldFactory)
     private List<string> Regions = ["Menu"];
     private Dictionary<string, LocationProgressType> LocationPriorities = [];
     private CodeBlockFactory CreateRegionCode = new();
+    private List<RegionData> RegionDatas = [];
 
     public RegionFactory AddRegion(string region)
     {
@@ -63,24 +64,21 @@ public class RegionFactory(WorldFactory worldFactory)
         string fromRegion, string toRegion, string rule = "", string connectionName = "", string condition = ""
     )
     {
-        return AddIf(
-            condition,
-            new CodeBlockFactory().AddCode(new RegionData(fromRegion, toRegion, rule, connectionName).ToString())
-        );
+        var data = new RegionData(fromRegion, toRegion, rule, connectionName);
+        RegionDatas.Add(data);
+        return AddIf(condition, new CodeBlockFactory().AddCode(data.ToString()));
     }
 
     public RegionFactory AddConnectionCompiledRule(
         string fromRegion, string toRegion, string rule, string connectionName = "", string condition = ""
     )
     {
-        return AddIf(
-            condition,
-            new CodeBlockFactory().AddCode(
-                new RegionData(
-                    fromRegion, toRegion, WorldFactory.GetRuleFactory().GenerateCompiledRule(rule), connectionName
-                ).ToString()
-            )
+        var data = new RegionData(
+            fromRegion, toRegion, WorldFactory.GetRuleFactory().GenerateCompiledRule(rule), connectionName
         );
+
+        RegionDatas.Add(new RegionData(fromRegion, toRegion, rule, connectionName));
+        return AddIf(condition, new CodeBlockFactory().AddCode(data.ToString()));
     }
 
     public RegionFactory AddLocationPriority(string location, LocationProgressType progress)

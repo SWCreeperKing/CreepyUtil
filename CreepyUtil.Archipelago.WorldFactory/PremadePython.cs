@@ -34,19 +34,25 @@ public static class PremadePython
     /// <summary>
     /// makes create items code based on a Dict[str, int]
     /// </summary>
-    public static string CreateItemsFromMapCountGenCode(string collection)
+    public static string CreateItemsFromMapCountGenCode(string collection, bool removeFromPool = true)
     {
-        return new ForLoopFactory("item, amt", $"{collection}.items()")
-              .AddCode("world.location_count -= amt")
-              .AddCode(
-                   new ForLoopFactory("_", "range(amt)")
-                      .AddCode("pool.append(world.create_item(item))")
-               ).ToString();
+        var loop = new ForLoopFactory("item, amt", $"{collection}.items()");
+        if (removeFromPool) loop.AddCode("world.location_count -= amt");
+
+        return loop.AddCode(
+                        new ForLoopFactory("_", "range(amt)")
+                           .AddCode("pool.append(world.create_item(item))")
+                    )
+                   .ToString();
     }
 
-    public static string CreateItemsFromCountGenCode(string amount, string item, bool stringify = true)
+    public static string CreateItemsFromCountGenCode(
+        string amount, string item, bool stringify = true, bool removeFromPool = true
+    )
     {
-        return new ForLoopFactory("_", $"range({amount})").AddCode(CreateItem(item, stringify)).ToString();
+        return new ForLoopFactory("_", $"range({amount})")
+              .AddCode(CreateItem(item, stringify, removeFromPool: removeFromPool))
+              .ToString();
     }
 
     public static string CreateItemsFillRemainingWith(string collection)
@@ -55,22 +61,39 @@ public static class PremadePython
               .AddCode($"pool.append(world.create_item(world.random.choice({collection})))").ToString();
     }
 
-    public static string CreateItemsFromClassificationList(string collection = "item_table")
+    public static string CreateItemsFromClassificationList(
+        string collection = "item_table", bool removeFromPool = true, string exclusionCondition = ""
+    )
     {
-        return new ForLoopFactory("item, classification", $"{collection}.items()").AddCode(CreateItem("item", false))
-           .ToString();
+        return CreateItemForLoop(
+            collection, "item, classification", exclusionCondition: exclusionCondition, removeFromPool: removeFromPool
+        );
     }
 
-    public static string CreateItemsFromList(string collection)
+    public static string CreateItemsFromList(string collection, bool removeFromPool, string exclusionCondition = "")
     {
-        return new ForLoopFactory("item", collection).AddCode(CreateItem("item", false)).ToString();
+        return CreateItemForLoop(collection, exclusionCondition: exclusionCondition, removeFromPool: removeFromPool);
     }
 
-    public static string CreateItem(string item, bool stringify = true, string amount = "1")
+    public static string CreateItemForLoop(
+        string collection, string forVariable = "item", string createItemVariable = "item",
+        string exclusionCondition = "", bool stringify = false, string amount = "1", bool removeFromPool = true
+    )
     {
-        return new CodeBlockFactory()
-              .AddCode($"world.location_count -= {amount}")
-              .AddCode($"pool.append(world.create_item({(stringify ? item.Surround('"') : item)}))").ToString();
+        var forLoop = new ForLoopFactory(forVariable, collection);
+
+        if (exclusionCondition is not "") forLoop.AddCode(new IfFactory(exclusionCondition).AddCode("continue"));
+
+        return forLoop.AddCode(CreateItem(createItemVariable, stringify, amount, removeFromPool))
+                      .ToString();
+    }
+
+    public static string CreateItem(string item, bool stringify = true, string amount = "1", bool removeFromPool = true)
+    {
+        var block = new CodeBlockFactory();
+        if (removeFromPool) block.AddCode($"world.location_count -= {amount}");
+
+        return block.AddCode($"pool.append(world.create_item({(stringify ? item.Surround('"') : item)}))").ToString();
     }
 
     public static string CreateItemsFillRemainingWithItem(string item, bool stringify = true)

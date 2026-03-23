@@ -108,6 +108,31 @@ public class ItemFactory(WorldFactory worldFactory)
         return this;
     }
 
+    public ItemFactory AddIndependentVariable(IPythonVariable variable)
+    {
+        ItemVariables.Add(variable);
+        return this;
+    }
+    
+    public ItemFactory AddToFinalLocationList(string addToFinalList)
+    {
+        if (addToFinalList is "") return this;
+        ItemMap.Add(addToFinalList);
+        return this;
+    }
+
+    public ItemFactory AddToAllItemsOutput(string item)
+    {
+        AllItems.Add(item);
+        return this;
+    }
+    
+    public ItemFactory AddToAllItemsOutput(params string[] item)
+    {
+        AllItems.AddRange(item);
+        return this;
+    }
+    
     public void GenerateItemsFile(
         out string[] itemsArray,
         string fileOutput = "Items.py",

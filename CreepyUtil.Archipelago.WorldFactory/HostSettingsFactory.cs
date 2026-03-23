@@ -60,7 +60,7 @@ public readonly struct Bool(string settingName, string comment, bool value) : IH
                                            .AddComment(comment);
 
     public IPythonVariable GetVariable() => new Variable(
-        settingName.ToLower().Replace(" ", ""), value ? "True" : "False"
+        settingName.ToLower().Replace(" ", "_"), value ? "True" : "False"
     );
 }
 

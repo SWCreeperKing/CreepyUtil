@@ -1,10 +1,12 @@
-﻿namespace CreepyUtil.Archipelago.WorldFactory;
+﻿using static CreepyUtil.Archipelago.WorldFactory.PremadePython;
+
+namespace CreepyUtil.Archipelago.WorldFactory;
 
 public partial class WorldFactory
 {
     private RuleFactory? RuleFactory;
 
-    public RuleFactory GetRuleFactory(string link = "No Link Given", ILogicCompiler? logicCompiler = null)
+    public RuleFactory GetRuleFactory(string link = "No Link Given", ILogicCompiler? logicCompiler = null, bool addStarters = true)
     {
         if (RuleFactory is not null) return RuleFactory;
         RuleFactory = new RuleFactory(this)
@@ -12,7 +14,11 @@ public partial class WorldFactory
             LogicGeneratorLink = link, LogicCompiler = logicCompiler ?? new DefaultLogicCompiler(),
         };
 
-        return RuleFactory;
+        if (!addStarters) return RuleFactory;
+        return RuleFactory.AddLogicFunction("hasN", "has_amount", StateHas("item", "amount", false), "item", "amount")
+                          .AddCompoundLogicFunction("has", "has", "hasN[item, 1]", "item")
+                          .AddLogicFunction("any", "has_any", "return any(has(state, player, item) for item in items)", "items")
+                          .AddLogicFunction("all", "has_all", "return all(has(state, player, item) for item in items)", "items");
     }
 }
 
@@ -90,7 +96,7 @@ public class RuleFactory(WorldFactory worldFactory)
         LogicRuleAssociations.Aggregate(
                                   ruleMap,
                                   (factory, pair) => factory.AddCode(
-                                      $"\t\"{pair.Key}\": lambda state: {GenerateCompiledRule(pair.Value)}"
+                                      $"\t\"{pair.Key}\": lambda state: {GenerateCompiledRule(pair.Value)},"
                                   )
                               )
                              .AddCode("}");

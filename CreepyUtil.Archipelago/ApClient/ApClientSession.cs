@@ -81,7 +81,7 @@ public partial class ApClient
         catch (Exception e) { OnErrorReceived?.Invoke(e); }
         return false;
     }
-
+    
     public ScoutedItemInfo? ScoutLocation(string id)
     {
         var location = Locations[id];

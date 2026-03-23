@@ -1,6 +1,4 @@
-﻿using System.Text;
-
-namespace CreepyUtil.Archipelago.WorldFactory;
+﻿namespace CreepyUtil.Archipelago.WorldFactory;
 
 public partial class WorldFactory
 {
@@ -23,6 +21,7 @@ public class LocationFactory(WorldFactory worldFactory)
 
     private List<string> AllLocations = [];
     private WorldFactory WorldFactory = worldFactory;
+    private List<IPythonVariable> OtherVariables = [];
     private Dictionary<string, IEnumerable<string>> LocationVariablesSingle = [];
     private Dictionary<string, IEnumerable<IEnumerable<string>>> LocationVariablesDouble = [];
     private HashSet<string> LocationVariablesFinalList = [];
@@ -34,11 +33,9 @@ public class LocationFactory(WorldFactory worldFactory)
     {
         LocationVariablesSingle[variable] = locations;
 
-        if (addToFinalList)
-        {
-            AllLocations.AddRange(locations);
-            LocationVariablesFinalList.Add($"*[{selectionModifier} for items in {variable}]");
-        }
+        if (!addToFinalList) return this;
+        AllLocations.AddRange(locations);
+        LocationVariablesFinalList.Add($"*[{selectionModifier} for items in {variable}]");
 
         return this;
     }
@@ -51,12 +48,27 @@ public class LocationFactory(WorldFactory worldFactory)
     {
         LocationVariablesDouble[variable] = locations;
 
-        if (addToFinalList)
-        {
-            AllLocations.AddRange(locations.Select(loc => loc.ElementAt(internalSelectionModifier)));
-            LocationVariablesFinalList.Add($"*[{selectionModifier} for items in {variable}]");
-        }
+        if (!addToFinalList) return this;
+        AllLocations.AddRange(locations.Select(loc => loc.ElementAt(internalSelectionModifier)));
+        LocationVariablesFinalList.Add($"*[{selectionModifier} for items in {variable}]");
 
+        return this;
+    }
+
+    public LocationFactory AddIndependentVariable(string name, string value, string addToFinalList = "")
+        => AddIndependentVariable(new Variable(name, value), addToFinalList);
+
+    public LocationFactory AddIndependentVariable(IPythonVariable variable, string addToFinalList = "")
+    {
+        OtherVariables.Add(variable);
+        AddToFinalLocationList(addToFinalList);
+        return this;
+    }
+
+    public LocationFactory AddToFinalLocationList(string addToFinalList)
+    {
+        if (addToFinalList is "") return this;
+        LocationVariablesFinalList.Add(addToFinalList);
         return this;
     }
 
@@ -73,6 +85,8 @@ public class LocationFactory(WorldFactory worldFactory)
         LocationVariablesDouble.Aggregate(
             locationPy, (factory, pair) => factory.AddObject(new StringDoubleArray(pair.Key, pair.Value))
         );
+
+        locationPy.AddObjects(OtherVariables.ToArray());
 
         locationsArray = AllLocations.ToArray();
         locationPy.AddObject(new StringArray("location_dict", LocationVariablesFinalList, stringify: false));

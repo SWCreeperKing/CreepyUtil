@@ -66,6 +66,7 @@ public class OptionsFactory(WorldFactory worldFactory)
         string fileOutput = "Options.py", string imports = """
                                                            from dataclasses import dataclass
                                                            from Options import *
+                                                           from .Locations import *
                                                            """
     )
     {

@@ -1,7 +1,6 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
 using CreepyUtil.Archipelago.PackReader;
-using NLua;
 
 Porter.LoggerEvent += obj => Console.WriteLine($"{obj}\n\n");
 
