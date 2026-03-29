@@ -272,7 +272,46 @@ public class ElifFactory(string condition) : TCodeBlockFactory<ElifFactory>
     public override string GetText(int indentLevel = 0) => GetIf(indentLevel);
 }
 
-public class CodeBlockFactory : TCodeBlockFactory<CodeBlockFactory>;
+public class MatchFactory(string switchStatement) : TCodeBlockFactory<MatchFactory>
+{
+    private Dictionary<string, CodeBlockFactory> Cases = [];
+
+    public MatchFactory AddCase(string @case, CodeBlockFactory blockFactory)
+    {
+        Cases[@case] = blockFactory;
+        return this;
+    }
+
+    public string GetMatch(int indentLevel = 0)
+    {
+        StringBuilder sb = new();
+        var indent = '\t'.Repeat(indentLevel);
+        var indent1 = '\t'.Repeat(indentLevel + 1);
+
+        sb.Append(indent).Append("match ").Append(switchStatement).Append(":\n");
+
+        if (Cases.Count == 0) sb.Append(indent1).Append("pass");
+        else
+        {
+            foreach (var kv in Cases)
+            {
+                sb.Append(indent1).Append("case ").Append(kv.Key).Append(":\n")
+                  .Append(kv.Value.GetText(indentLevel + 2))
+                  .Append('\n');
+            }
+        }
+
+        return sb.ToString();
+    }
+
+    public override string GetText(int indentLevel = 0) => GetMatch(indentLevel);
+}
+
+public class CodeBlockFactory : TCodeBlockFactory<CodeBlockFactory>
+{
+    public static implicit operator CodeBlockFactory(string code) => new CodeBlockFactory().AddCode(code);
+    public static implicit operator string(CodeBlockFactory block) => block.GetText();
+}
 
 public class TCodeBlockFactory<T> : IPythonObject where T : TCodeBlockFactory<T>
 {

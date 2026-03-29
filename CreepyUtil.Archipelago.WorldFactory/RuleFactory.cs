@@ -1,4 +1,5 @@
 ﻿using static CreepyUtil.Archipelago.WorldFactory.PremadePython;
+using static CreepyUtil.Archipelago.WorldFactory.RuleFactory;
 
 namespace CreepyUtil.Archipelago.WorldFactory;
 
@@ -6,7 +7,8 @@ public partial class WorldFactory
 {
     private RuleFactory? RuleFactory;
 
-    public RuleFactory GetRuleFactory(string link = "No Link Given", ILogicCompiler? logicCompiler = null, bool addStarters = true)
+    public RuleFactory GetRuleFactory(string link = "No Link Given", ILogicCompiler? logicCompiler = null,
+        bool addStarters = true)
     {
         if (RuleFactory is not null) return RuleFactory;
         RuleFactory = new RuleFactory(this)
@@ -15,16 +17,20 @@ public partial class WorldFactory
         };
 
         if (!addStarters) return RuleFactory;
-        return RuleFactory.AddLogicFunction("hasN", "has_amount", StateHas("item", "amount", false), "item", "amount")
-                          .AddCompoundLogicFunction("has", "has", "hasN[item, 1]", "item")
-                          .AddLogicFunction("any", "has_any", "return any(has(state, player, item) for item in items)", "items")
-                          .AddLogicFunction("all", "has_all", "return all(has(state, player, item) for item in items)", "items");
+        return RuleFactory
+              .AddLogicFunction("yaml", "get_yaml_option", "return options.get_options_map(option).value", "option")
+              .AddLogicFunction("hasN", "has_amount", StateHas("item", "amount", false), "item", "amount")
+              .AddCompoundLogicFunction("has", "has", "hasN[item, 1]", "item")
+              .AddLogicFunction("any", "has_any",
+                   $"return any(has({string.Join(", ", DefaultParams)}, item) for item in items)", "items")
+              .AddLogicFunction("all", "has_all",
+                   $"return any(has({string.Join(", ", DefaultParams)}, item) for item in items)", "items");
     }
 }
 
 public class RuleFactory(WorldFactory worldFactory)
 {
-    private static readonly string[] DefaultParams = ["state", "player"];
+    public static readonly string[] DefaultParams = ["state", "player", "options"];
 
     public string LogicGeneratorLink = "No Link Given";
 
@@ -77,8 +83,7 @@ public class RuleFactory(WorldFactory worldFactory)
     }
 
     public RuleFactory AddLogicRules(Dictionary<string, string> rules) => rules.Aggregate(
-        this, (factory, pair) => factory.AddLogicRule(pair.Key, pair.Value)
-    );
+        this, (factory, pair) => factory.AddLogicRule(pair.Key, pair.Value));
 
     public void GenerateRulesFile(
         string fileOutput = "Rules.py", string imports = "import math\nfrom .Locations import *",
@@ -93,12 +98,9 @@ public class RuleFactory(WorldFactory worldFactory)
                      .AddParams(extraParams)
                      .AddCode("return {");
 
-        LogicRuleAssociations.Aggregate(
-                                  ruleMap,
+        LogicRuleAssociations.Aggregate(ruleMap,
                                   (factory, pair) => factory.AddCode(
-                                      $"\t\"{pair.Key}\": lambda state: {GenerateCompiledRule(pair.Value)},"
-                                  )
-                              )
+                                      $"\t\"{pair.Key}\": lambda state: {GenerateCompiledRule(pair.Value)},"))
                              .AddCode("}");
 
         var rulePy = new PythonFactory()
@@ -111,8 +113,7 @@ public class RuleFactory(WorldFactory worldFactory)
     }
 
     public string GenerateCompiledRule(string rule) => LogicCompiler.CompileRule(
-        rule.Trim(), LogicMethodTokens, WorldFactory.OnCompilerError
-    );
+        rule.Trim(), LogicMethodTokens, WorldFactory.OnCompilerError);
 
     public Dictionary<string, string> GetRuleMapAssociations()
         => LogicRuleAssociations.ToDictionary(kv => kv.Key, kv => kv.Value);
@@ -172,7 +173,8 @@ public class DefaultLogicCompiler : ILogicCompiler
                     var raw = string.Join(" ", listVer.GetRange(i, lastClosing - i + 1)).Trim();
                     var start = raw.IndexOf('[') + 1;
                     raw = string.Join("", raw.ToList().GetRange(start, raw.LastIndexOf(']') - start));
-                    tokens.Add(raw == "" ? $"{token}(state, player)" : $"{token}(state, player, {raw})");
+                    tokens.Add(raw == "" ? $"{token}({string.Join(", ", DefaultParams)})"
+                        : $"{token}({string.Join(", ", DefaultParams)}, {raw})");
 
                     i += lastClosing - i + 1;
                 }
@@ -180,7 +182,7 @@ public class DefaultLogicCompiler : ILogicCompiler
                 {
                     if (!methodTokens.TryGetValue(key, out var token))
                         throw new ArgumentException($"Unknown Method Token: [{key}]");
-                    tokens.Add($"{token}(state, player)");
+                    tokens.Add($"{token}({string.Join(", ", DefaultParams)})");
                     i++;
                 }
 

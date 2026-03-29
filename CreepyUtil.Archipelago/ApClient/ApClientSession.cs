@@ -94,7 +94,7 @@ public partial class ApClient
         if (HasPlayerListSetup) return;
         HasPlayerListSetup = true;
         PlayerStates = PlayerNames.Select(_ => ArchipelagoClientState.ClientUnknown).ToArray();
-
+        
         for (var i = 0; i < PlayerNames.Length; i++)
         {
             var i1 = i;

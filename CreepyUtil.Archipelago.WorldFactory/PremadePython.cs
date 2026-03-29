@@ -62,7 +62,7 @@ public static class PremadePython
     }
 
     public static string CreateItemsFromClassificationList(
-        string collection = "item_table", bool removeFromPool = true, string exclusionCondition = ""
+        string collection = "item_table.items()", bool removeFromPool = true, string exclusionCondition = ""
     )
     {
         return CreateItemForLoop(
@@ -70,7 +70,7 @@ public static class PremadePython
         );
     }
 
-    public static string CreateItemsFromList(string collection, bool removeFromPool, string exclusionCondition = "")
+    public static string CreateItemsFromList(string collection, bool removeFromPool = true, string exclusionCondition = "")
     {
         return CreateItemForLoop(collection, exclusionCondition: exclusionCondition, removeFromPool: removeFromPool);
     }

@@ -19,6 +19,7 @@ public class OptionsFactory(WorldFactory worldFactory)
     public string OptionsGeneratorLink = "No Link Given";
 
     private List<PythonClassFactory> Options = [];
+    private Dictionary<string, HashSet<string>> OptionsGroups = [];
 
     private PythonClassFactory OptionClass = new PythonClassFactory($"{worldFactory.GameName.Replace(" ", "")}Options")
                                             .AddParameter("PerGameCommonOptions")
@@ -27,7 +28,7 @@ public class OptionsFactory(WorldFactory worldFactory)
     private MethodFactory? CheckOptions = null;
     public Dictionary<string, string> OptionNames { get; private set; } = [];
 
-    public OptionsFactory AddOption(string optionName, string description, IOptionType option)
+    public OptionsFactory AddOption(string optionName, string description, IOptionType option, string category = "")
     {
         OptionNames[optionName] = option.DataType();
         Options.Add(
@@ -41,6 +42,14 @@ public class OptionsFactory(WorldFactory worldFactory)
         OptionClass.AddVariable(
             new Variable(optionName.Replace(" ", "_").ToLower(), type: optionName.Replace(" ", ""))
         );
+
+        if (category is "") return this;
+        if (!OptionsGroups.TryGetValue(category, out var cats))
+        {
+            OptionsGroups[category] = cats = [];
+        }
+        
+        cats.Add(optionName.Replace(" ", ""));
         return this;
     }
 
@@ -70,6 +79,21 @@ public class OptionsFactory(WorldFactory worldFactory)
                                                            """
     )
     {
+        // if (OptionsGroups.Any())
+        // {
+        //     OptionClass.AddVariable(new Variable("option_groups", $"[{OptionsGroups.Select(kv => $"OptionGroup(\"{kv.Key}\", [{string.Join(", ", kv.Value.Select(s => $"Options"))}])")}]"));
+        // }
+        MatchFactory optionsMatch = new("option");
+
+        foreach (var option in OptionNames.Keys)
+        {
+            optionsMatch.AddCase(option.ToLower().Replace(" ", "_").Surround('"'), $"return self.{option.ToLower().Replace(" ", "_")}");
+        }
+
+        OptionClass.AddMethod(new MethodFactory("get_options_map")
+                             .AddParams("self", "option")
+           .AddCode(optionsMatch));
+        
         var optionsPy = new PythonFactory()
                        .AddObject(new Comment($"File is Auto-generated, see: [{OptionsGeneratorLink}]"))
                        .AddImports(imports)

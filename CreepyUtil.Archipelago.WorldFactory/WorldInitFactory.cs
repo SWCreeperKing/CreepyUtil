@@ -179,7 +179,8 @@ public class WorldInitFactory
     public WorldInitFactory UseSetRules(Action<MethodFactory>? action = null)
     {
         SetRules ??= new MethodFactory("set_rules").AddParam("self")
-                                                   .AddCode(new Variable("player", "self.player"));
+                                                   .AddCode(new Variable("player", "self.player"))
+                                                   .AddCode(new Variable("options", "self.options"));
         action?.Invoke(SetRules);
         return this;
     }

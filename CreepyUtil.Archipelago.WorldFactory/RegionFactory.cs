@@ -190,7 +190,7 @@ public class RegionFactory(WorldFactory worldFactory)
                            .AddParam("world")
                            .AddCode(new Variable("player", "world.player"))
                            .AddCode(new Variable("options", "world.options"))
-                           .AddCode(new Variable("rule_map", "get_rule_map(world.player)")).AddNewLine()
+                           .AddCode(new Variable("rule_map", "get_rule_map(player, options)")).AddNewLine()
                            .AddCode(
                                 new MappedVariable<string, string>(
                                     "region_map",

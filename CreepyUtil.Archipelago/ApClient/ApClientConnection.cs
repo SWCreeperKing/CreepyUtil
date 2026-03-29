@@ -3,6 +3,7 @@ using Archipelago.MultiClient.Net;
 using Archipelago.MultiClient.Net.DataPackage;
 using Archipelago.MultiClient.Net.Enums;
 using Archipelago.MultiClient.Net.Helpers;
+using Archipelago.MultiClient.Net.Models;
 using Archipelago.MultiClient.Net.Packets;
 using CreepyUtil.Archipelago.Commands;
 
@@ -21,7 +22,6 @@ public partial class ApClient
     public TwoWayLookup<long, string> Locations { get; private set; }
     public TwoWayLookup<long, string> Items { get; private set; }
     public TagManager Tags { get; private set; }
-    public bool HintsAwaitingUpdate { get; private set; } = false;
 
     public TimeSpan ServerTimeout
     {
@@ -39,7 +39,6 @@ public partial class ApClient
     public bool HasGoaled
         => HasGoaledCached || Session?.DataStorage?.GetClientStatus() is ArchipelagoClientState.ClientGoal;
 
-    private bool HasGoaledCached = false;
     private LoginInfo Info;
     private int[] PlayerSlotArr;
     private TimeSpan _ServerTimeout;
@@ -58,6 +57,7 @@ public partial class ApClient
     public event Action<ReadOnlyCollection<long>>? CheckedLocationsUpdated;
     public event ArchipelagoSocketHelperDelagates.ErrorReceivedHandler? OnConnectionErrorReceived;
     public event Action<Exception>? OnErrorReceived;
+    public event Action<Hint[]>? HintsTrackedEvent; 
 
     public ApClient(TimeSpan? timeout = null) => ServerTimeout = timeout ?? new TimeSpan(0, 0, 10);
 
@@ -94,8 +94,7 @@ public partial class ApClient
             Session.DataStorage.TrackHints(hints
                     =>
                 {
-                    WaitingHints = hints;
-                    HintsAwaitingUpdate = true;
+                    HintsTrackedEvent?.Invoke(hints);
                 }
             );
 
@@ -218,12 +217,5 @@ public partial class ApClient
         IsConnected = false;
         Session!.Socket.DisconnectAsync();
         Session = null;
-    }
-
-    public void Goal()
-    {
-        if (HasGoaledCached) return;
-        Session?.SetGoalAchieved();
-        HasGoaledCached = true;
     }
 }
