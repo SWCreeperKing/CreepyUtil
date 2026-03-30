@@ -74,9 +74,11 @@ public partial class ApClient
             Session = ArchipelagoSessionFactory.CreateSession(Info.Address, Info.Port);
             (Socket = Session.Socket).ErrorReceived += (e, s) => OnConnectionErrorReceived?.Invoke(e, s);
 
+            Tags = new TagManager(this, Session!, tags!);
+            
             var result = Session.TryConnectAndLogin(
                 gameName, Info.Slot, flags, version,
-                tags?.Select(tag => tag.StringTag()).ToArray(), null, Info.Password,
+                Tags.GetTagsAsStrings(), null, Info.Password,
                 requestSlotData
             );
 
@@ -120,16 +122,6 @@ public partial class ApClient
                         break;
                     case BouncedPacket bouncedPacket:
                         OnBouncedPacketReceived?.Invoke(bouncedPacket);
-                        if (bouncedPacket.Tags.Contains("DeathLink"))
-                        {
-                            if (!Tags[ArchipelagoTag.DeathLink]) return;
-                            var source = (string)bouncedPacket.Data["source"]!;
-                            if (source == PlayerName && ExcludeBouncedPacketsFromSelf) return;
-                            var message = bouncedPacket.Data.TryGetValue("cause", out var cause)
-                                ? (string)cause!
-                                : "Died a generic (unknown) death";
-                            OnDeathLinkPacketReceived?.Invoke(source, message);
-                        }
 
                         if (bouncedPacket.Tags.Contains("TrapLink"))
                         {
@@ -169,6 +161,8 @@ public partial class ApClient
                         break;
                 }
             };
+            
+            SetupDeathLink();
 
             Session.Locations.CheckedLocationsUpdated += locations => CheckedLocationsUpdated?.Invoke(locations);
 
@@ -186,7 +180,6 @@ public partial class ApClient
             MissingLocations = Session?.Locations.AllMissingLocations.Select(l => Locations[l]).ToList()!;
 
             IsConnected = true;
-            Tags = new TagManager(Session!);
             OnConnectionEvent?.Invoke(this);
             return null;
         }

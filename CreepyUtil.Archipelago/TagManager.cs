@@ -5,13 +5,16 @@ namespace CreepyUtil.Archipelago;
 
 public class TagManager
 {
+    private ApClient.ApClient Client;
     private ArchipelagoSession Session;
     private HashSet<ArchipelagoTag> Tags = [];
 
-    public TagManager(ArchipelagoSession session)
+    public TagManager(ApClient.ApClient client, ArchipelagoSession session, params ArchipelagoTag[]? tags)
     {
+        Client = client;
         Session = session;
-        FetchTags();
+        if (tags is null || tags.Length == 0) return;
+        Tags = tags.ToHashSet();
     }
 
     public static TagManager operator +(TagManager manager, ArchipelagoTag tag)
@@ -30,7 +33,9 @@ public class TagManager
     }
 
     public ArchipelagoTag[] GetTags() => Tags.ToArray();
-    public string[] GetTagsAsStrings() => Tags.Select(tag => tag.StringTag()).ToArray();
+
+    public string[] GetTagsAsStrings()
+        => Tags.SelectMany(tag => tag.StringTag(Client.DeathLinkGroups.ToArray())).ToArray();
 
     public void SetTags(params ArchipelagoTag[] tags)
     {
@@ -40,25 +45,21 @@ public class TagManager
 
     public void FetchTags()
     {
-        Tags = new HashSet<ArchipelagoTag>(Session.ConnectionInfo.Tags.Select(tag => tag.ToArchipelagoTag()));
+        Tags = new HashSet<ArchipelagoTag>(Session.ConnectionInfo.Tags.Select(tag =>
+        {
+            var apTag = tag.ToArchipelagoTag(out var dl);
+            if (dl is not null && apTag is DeathLink) Client.DeathLinkGroups.Add(dl);
+            return apTag;
+        }));
     }
 
     public void ToggleDeathLink()
     {
-        if (this[DeathLink])
-        {
-            _ = this - DeathLink;
-        }
-        else
-        {
-            _ = this + DeathLink;
-        }
+        if (this[DeathLink]) _ = this - DeathLink;
+        else _ = this + DeathLink;
     }
 
-    private void UpdateTags()
-    {
-        Session.ConnectionInfo.UpdateConnectionOptions(Tags.Select(tag => tag.StringTag()).ToArray());
-    }
+    private void UpdateTags() { Session.ConnectionInfo.UpdateConnectionOptions(GetTagsAsStrings()); }
 
     public bool this[ArchipelagoTag tag] => Tags.Contains(tag);
 }
@@ -99,7 +100,7 @@ public enum ArchipelagoTag
     /// Client participates in TrapLink, can send and receive TrapLinks packets
     /// </summary>
     TrapLink,
-    
+
     /// <summary>
     /// Client participates in RingLink, can send and receive RingLink packets
     /// </summary>
@@ -108,21 +109,28 @@ public enum ArchipelagoTag
 
 public static class TagTranslator
 {
-    public static readonly TwoWayLookup<string, ArchipelagoTag> Translator = new()
+    private static readonly TwoWayLookup<string, ArchipelagoTag> Translator = new()
     {
-        { "AP", AP },
-        { "NoText", NoText },
-        { "TextOnly", TextOnly },
-        { "Tracker", Tracker },
-        { "HintGame", HintGame },
-        { "DeathLink", DeathLink },
-        { "TrapLink", TrapLink }
+        { "AP", AP }, { "NoText", NoText }, { "TextOnly", TextOnly }, { "Tracker", Tracker },
+        { "HintGame", HintGame }, { "TrapLink", TrapLink }
     };
 
-    public static ArchipelagoTag ToArchipelagoTag(this string tag)
-        => Translator.TryGetValue(tag, out var apTag)
+    public static ArchipelagoTag ToArchipelagoTag(this string tag, out string? deathLinkGroup)
+    {
+        if (tag.StartsWith("DeathLink"))
+        {
+            deathLinkGroup = tag.Substring(9);
+            return DeathLink;
+        }
+
+        deathLinkGroup = null;
+        return Translator.TryGetValue(tag, out var apTag)
             ? apTag
             : throw new ArgumentException($"[{tag}] is not an Archipelago client tag");
+    }
 
-    public static string StringTag(this ArchipelagoTag tag) => Translator[tag];
+    public static string[] StringTag(this ArchipelagoTag tag, params string[] deathLinkGroups)
+    {
+        return tag is DeathLink ? deathLinkGroups.Select(g => $"DeathLink{g}").ToArray() : ([Translator[tag]]);
+    }
 }
