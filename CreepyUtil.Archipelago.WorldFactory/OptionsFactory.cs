@@ -32,7 +32,7 @@ public class OptionsFactory(WorldFactory worldFactory)
     {
         OptionNames[optionName] = option.DataType();
         Options.Add(
-            new PythonClassFactory(optionName.Replace(" ", ""))
+            new PythonClassFactory(optionName.FormatStringForOptionsVar(true))
                .AddComment(description)
                .AddParameter(option.Parameter())
                .AddVariable(new Variable("display_name", optionName.Surround('"')))
@@ -40,7 +40,7 @@ public class OptionsFactory(WorldFactory worldFactory)
         );
 
         OptionClass.AddVariable(
-            new Variable(optionName.Replace(" ", "_").ToLower(), type: optionName.Replace(" ", ""))
+            new Variable(optionName.FormatStringForOptionsVar(), type: optionName.FormatStringForOptionsVar(true))
         );
 
         if (category is "") return this;
@@ -87,7 +87,7 @@ public class OptionsFactory(WorldFactory worldFactory)
 
         foreach (var option in OptionNames.Keys)
         {
-            optionsMatch.AddCase(option.ToLower().Replace(" ", "_").Surround('"'), $"return self.{option.ToLower().Replace(" ", "_")}");
+            optionsMatch.AddCase(option.FormatStringForOptionsVar().Surround('"'), $"return self.{option.FormatStringForOptionsVar()}");
         }
 
         OptionClass.AddMethod(new MethodFactory("get_options_map")
@@ -110,6 +110,15 @@ public class OptionsFactory(WorldFactory worldFactory)
 
         File.WriteAllText($"{worldFactory.OutputDirectory}{fileOutput}", optionsPy.GetText());
     }
+}
+
+public class OptionSet(string[] def, string[] collection) : IOptionType
+{
+    public string DataType() => "str";
+    public string Parameter() => "OptionSet";
+
+    public IPythonVariable[] GetData()
+        => [new Variable("valid_keys", $"frozenset([{string.Join(", ", collection)}])"), new Variable("default", $"frozenset([{string.Join(", ", def)}])")];
 }
 
 public readonly struct Range(int def, int start, int end) : IOptionType

@@ -35,7 +35,7 @@ public class PythonFactory
     public string GetText()
     {
         StringBuilder sb = new();
-        if (Imports.Any())
+        if (Imports.Count != 0)
         {
             foreach (var import in Imports) { sb.Append(import).Append('\n'); }
             sb.Append('\n');
@@ -129,7 +129,7 @@ public class PythonClassFactory(string className) : IPythonObject
     {
         StringBuilder sb = new();
 
-        if (Decorators.Any())
+        if (Decorators.Count != 0)
         {
             Decorators.ForEach(decorator => sb.Append(decorator));
             sb.Append('\n');
@@ -161,7 +161,7 @@ public class PythonClassFactory(string className) : IPythonObject
         if (Variables.Count != 0)
         {
             foreach (var variable in Variables) { sb.Append(variable.GetVariable(1)).Append('\n'); }
-            if (Methods.Any()) { sb.Append('\n'); }
+            if (Methods.Count != 0) { sb.Append('\n'); }
         }
 
         sb.Append(string.Join("\n\n", Methods.Select(m => m.GetMethod(1))));
@@ -284,6 +284,8 @@ public class MatchFactory(string switchStatement) : TCodeBlockFactory<MatchFacto
 
     public string GetMatch(int indentLevel = 0)
     {
+        if (Cases.Count == 0) return "";
+
         StringBuilder sb = new();
         var indent = '\t'.Repeat(indentLevel);
         var indent1 = '\t'.Repeat(indentLevel + 1);
@@ -373,42 +375,34 @@ public class Variable(string name, string value = "", string type = "") : Python
     public override void AddValue(string value, int indentLevel, StringBuilder sb) => sb.Append(value);
 }
 
-public class StringMap
-    (string name, Dictionary<string, string>? value = null, string type = "") : MappedVariable<string, string>(
-    name, value, type
-)
+public class StringMap(string name, Dictionary<string, string>? value = null, string type = "")
+    : MappedVariable<string, string>(name, value, type)
 {
     public override string ParseKey(string key) => key.Surround('"');
     public override string ParseValue(string value) => value.Surround('"');
 }
 
-public class StringArrayMap
-    (string name, Dictionary<string, string[]>? value = null, string type = "") : MappedVariable<string, string[]>(
-    name, value, type
-)
+public class StringArrayMap(string name, Dictionary<string, string[]>? value = null, string type = "")
+    : MappedVariable<string, string[]>(name, value, type)
 {
     public override string ParseKey(string key) => key.Surround('"');
     public override string ParseValue(string[] value) => $"[{string.Join(", ", value.Select(s => s.Surround('"')))}]";
 }
 
-public class StringArray
-    (string name, IEnumerable<string>? value = null, string type = "", bool stringify = true) : ListedVariable<string>(
-    name, value, type
-)
+public class StringArray(string name, IEnumerable<string>? value = null, string type = "", bool stringify = true)
+    : ListedVariable<string>(name, value, type)
 {
     public override string ParseValue(string value) => stringify ? value.Surround('"') : value;
 }
 
-public class StringDoubleArray
-    (string name, IEnumerable<IEnumerable<string>>? value = null, string type = "")
+public class StringDoubleArray(string name, IEnumerable<IEnumerable<string>>? value = null, string type = "")
     : ListedVariable<IEnumerable<string>>(name, value, type)
 {
     public override string ParseValue(IEnumerable<string> value)
         => $"[{string.Join(", ", value.Select(s => s.Surround('"')))}]";
 }
 
-public class MappedVariable<TKey, TValue>
-    (string name, Dictionary<TKey, TValue>? value = null, string type = "")
+public class MappedVariable<TKey, TValue>(string name, Dictionary<TKey, TValue>? value = null, string type = "")
     : ListedVariable<KeyValuePair<TKey, TValue>>(name, value, type) where TKey : notnull
 {
     public override char[] StartEndChars { get; } = ['{', '}'];
@@ -416,18 +410,18 @@ public class MappedVariable<TKey, TValue>
     public override string ParseValue(KeyValuePair<TKey, TValue> value)
         => $"{ParseKey(value.Key)}: {ParseValue(value.Value)}";
 
-    public virtual string ParseKey(TKey key) => key.ToString();
-    public virtual string ParseValue(TValue value) => value.ToString();
+    public virtual string ParseKey(TKey key) => key.ToString()!;
+    public virtual string ParseValue(TValue value) => value!.ToString()!;
 }
 
-public class ListedVariableAsMappedVariable<T>
-    (string name, IEnumerable<T>? value = null, string type = "") : ListedVariable<T?>(name, value, type)
+public class ListedVariableAsMappedVariable<T>(string name, IEnumerable<T>? value = null, string type = "")
+    : ListedVariable<T?>(name, value, type)
 {
     public override char[] StartEndChars { get; } = ['{', '}'];
 }
 
-public class ListedVariable<T>
-    (string name, IEnumerable<T>? value = null, string type = "") : PythonVariable<IEnumerable<T>?>(name, value, type)
+public class ListedVariable<T>(string name, IEnumerable<T>? value = null, string type = "")
+    : PythonVariable<IEnumerable<T>?>(name, value, type)
 {
     public IEnumerable<T> Data = value;
     public virtual char[] StartEndChars { get; } = ['[', ']'];
@@ -445,13 +439,26 @@ public class ListedVariable<T>
         var indent = '\t'.Repeat(indentLevel);
         var innerIndent = '\t'.Repeat(indentLevel + 1);
 
-        sb.Append(StartEndChars[0]).Append("\n").Append(innerIndent)
+        sb.Append(StartEndChars[0]).Append('\n').Append(innerIndent)
           .Append(string.Join($",\n{innerIndent}", value.Select(ParseValue)))
           .Append('\n').Append(indent).Append(StartEndChars[1]);
     }
 
     public virtual string ParseValue(T value) => value.ToString();
 
+}
+
+public readonly struct StringCollection(string[] items, bool stringify = true) : ICollection
+{
+    public readonly string[] Items = items;
+    public readonly bool Stringify = stringify;
+
+    public string GetText() => $"[{string.Join(", ", stringify ? Items.Select(s => s.Surround('"')) : Items)}]";
+}
+
+public readonly struct Collection(string collection) : ICollection
+{
+    public string GetText() => collection;
 }
 
 public abstract class PythonVariable<T>(string name, T value, string type = "") : IPythonVariable
@@ -482,6 +489,11 @@ public interface IPythonVariable : IPythonObject
 {
     public string GetVariable(int indentLevel = 0);
 }
+
+public interface ICollection
+{
+    public string GetText();
+};
 
 public interface IPythonObject
 {

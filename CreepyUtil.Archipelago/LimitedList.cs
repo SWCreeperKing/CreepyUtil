@@ -1,19 +1,26 @@
 ﻿namespace CreepyUtil.Archipelago;
 
-public class LimitedList<T>(int limit = -1)
+public class LimitedList<T>(int limit)
 {
-    public static int Limit = 200;
+    public int Limit = limit; 
     private List<T> List = [];
-    private int LocalLimit = limit == -1 ? Limit : limit;
+    private int LocalLimit => Limit == -1 ? 200 : Limit;
     public int Count => List.Count;
 
-    public bool Add(T t, bool removeFront = true)
+    public bool Add(T t, bool removeFront = true, Action<T>? removedObj = null)
     {
         List.Add(t);
+        return Update(removeFront, removedObj);
+    }
+
+    public bool Update(bool removeFront = true, Action<T>? removedObj = null)
+    {
         var removed = List.Count > LocalLimit;
         while (List.Count > LocalLimit)
         {
-            List.RemoveAt(removeFront ? 0 : List.Count - 1);
+            var index = removeFront ? 0 : List.Count - 1;
+            removedObj?.Invoke(List[index]);
+            List.RemoveAt(index);
         }
 
         return removed;
@@ -26,10 +33,7 @@ public class LimitedList<T>(int limit = -1)
     {
         try
         {
-            foreach (var item in List)
-            {
-                action(item);
-            }
+            foreach (var item in List) { action(item); }
         }
         catch (InvalidOperationException)
         {

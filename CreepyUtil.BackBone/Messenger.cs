@@ -6,16 +6,16 @@ namespace CreepyUtil.BackBone;
 
 public abstract class Messenger<TMessageType>
 {
-    public static int MaxScrollback
-    {
-        get => LimitedQueue<TMessageType>.Limit;
-        set => LimitedQueue<TMessageType>.Limit = value;
-    } 
+    // public static int MaxScrollback
+    // {
+    //     get => LimitedQueue<TMessageType>.Limit;
+    //     set => LimitedQueue<TMessageType>.Limit = value;
+    // } 
     
     public bool ScrollToBottom = true;
     public bool ShowInput = true;
     public bool ToRefreshColors = false;
-    private LimitedQueue<TMessageType> Scrollback = new();
+    private LimitedQueue<TMessageType> Scrollback = new(-1);
     private string Input = "";
     private bool ToScroll;
 

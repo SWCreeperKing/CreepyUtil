@@ -23,28 +23,26 @@ public class RegionFactory(WorldFactory worldFactory)
 
     public enum LocationProgressType
     {
-        Default,
-        Priority,
-        Excluded,
+        Default, Priority, Excluded,
     }
 
     private WorldFactory WorldFactory = worldFactory;
     public string RegionGeneratorLink = "No Link Given";
 
-    private List<string> Regions = ["Menu"];
+    private Dictionary<string, string> Regions = new() { ["Menu"] = "" };
     private Dictionary<string, LocationProgressType> LocationPriorities = [];
     private CodeBlockFactory CreateRegionCode = new();
     private List<RegionData> RegionDatas = [];
 
-    public RegionFactory AddRegion(string region)
+    public RegionFactory AddRegion(string region, string condition = "")
     {
-        Regions.Add(region);
+        Regions.Add(region, condition);
         return this;
     }
 
-    public RegionFactory AddRegions(params string[] regions)
+    public RegionFactory AddRegions(string condition = "", params string[] regions)
     {
-        Regions.AddRange(regions);
+        foreach (var region in regions) AddRegion(region, condition);
         return this;
     }
 
@@ -60,18 +58,16 @@ public class RegionFactory(WorldFactory worldFactory)
         return this;
     }
 
-    public RegionFactory AddConnection(
-        string fromRegion, string toRegion, string rule = "", string connectionName = "", string condition = ""
-    )
+    public RegionFactory AddConnection(string fromRegion, string toRegion, string rule = "", string connectionName = "",
+        string condition = "")
     {
         var data = new RegionData(fromRegion, toRegion, rule, connectionName);
         RegionDatas.Add(data);
         return AddIf(condition, new CodeBlockFactory().AddCode(data.ToString()));
     }
 
-    public RegionFactory AddConnectionCompiledRule(
-        string fromRegion, string toRegion, string rule, string connectionName = "", string condition = ""
-    )
+    public RegionFactory AddConnectionCompiledRule(string fromRegion, string toRegion, string rule,
+        string connectionName = "", string condition = "")
     {
         var data = new RegionData(
             fromRegion, toRegion, WorldFactory.GetRuleFactory().GenerateCompiledRule(rule), connectionName
@@ -114,10 +110,9 @@ public class RegionFactory(WorldFactory worldFactory)
         }
 
         return AddIf(
-            condition, locations.Aggregate(
-                new CodeBlockFactory(), (factory, location)
-                    => factory.AddCode(location.ToString())
-            ).AddNewLine()
+            condition,
+            locations.Aggregate(new CodeBlockFactory(), (factory, location) => factory.AddCode(location.ToString()))
+                     .AddNewLine()
         );
     }
 
@@ -129,33 +124,36 @@ public class RegionFactory(WorldFactory worldFactory)
     public RegionFactory AddEventLocations(string condition = "", params EventLocationData[] locations)
     {
         return AddIf(
-            condition, locations.Aggregate(
-                new CodeBlockFactory(), (factory, location)
-                    => factory.AddCode(location.ToString())
-            ).AddNewLine()
+            condition,
+            locations.Aggregate(new CodeBlockFactory(), (factory, location) => factory.AddCode(location.ToString()))
+                     .AddNewLine()
         );
     }
 
-    public RegionFactory AddLocationsFromList(
-        string list, string getLocation = "location[0]", string getRegion = "region_map[location[1]]",
-        string condition = ""
-    )
-    {
-        return AddIf(
-            condition, new ForLoopFactory("location", list)
-               .AddCode($"make_location(world, {getLocation}, {getRegion}, rule_map)")
-        );
-    }
-
-    public RegionFactory AddEventLocationsFromList(
-        string list, string getEventLocation = "f\"Event: {location[0]}\"", string item = "Event Item",
-        string getLocation = "location[0]", string getRegion = "region_map[location[1]]", string condition = ""
-    )
+    public RegionFactory AddLocationsFromList(string list, string getLocation = "location[0]",
+        string getRegion = "location[1]",
+        string condition = "")
     {
         return AddIf(
             condition, new ForLoopFactory("location", list)
                .AddCode(
-                    $"make_event_location(world, {getEventLocation}, {getLocation}, {item}, None, {getRegion}, rule_map)"
+                    new IfFactory($"{getRegion} in region_map")
+                       .AddCode($"make_location(world, {getLocation}, {getRegion}, region_map, rule_map)")
+                )
+        );
+    }
+
+    public RegionFactory AddEventLocationsFromList(string list, string getEventLocation = "f\"Event: {location[0]}\"",
+        string item = "Event Item",
+        string getLocation = "location[0]", string getRegion = "location[1]", string condition = "")
+    {
+        return AddIf(
+            condition, new ForLoopFactory("location", list)
+               .AddCode(
+                    new IfFactory($"{getRegion} in region_map")
+                       .AddCode(
+                            $"make_event_location(world, {getEventLocation}, {getLocation}, {item}, None, {getRegion}, region_map, rule_map)"
+                        )
                 )
         );
     }
@@ -166,13 +164,11 @@ public class RegionFactory(WorldFactory worldFactory)
         return this;
     }
 
-    public void GenerateRegionFile(
-        string fileOutput = "Regions.py", string imports = """
-                                                           from BaseClasses import Location, Region, Item, ItemClassification, LocationProgressType
-                                                           from .Locations import *
-                                                           from .Rules import *
-                                                           """
-    )
+    public void GenerateRegionFile(string fileOutput = "Regions.py", string imports = """
+        from BaseClasses import Location, Region, Item, ItemClassification, LocationProgressType
+        from .Locations import *
+        from .Rules import *
+        """)
     {
         var regionPy = new PythonFactory()
                       .AddObject(new Comment($"File is Auto-generated, see: [{RegionGeneratorLink}]"))
@@ -186,6 +182,7 @@ public class RegionFactory(WorldFactory worldFactory)
                            )
                        );
 
+        var regionGroups = Regions.GroupBy(kv => kv.Value).ToArray();
         var createRegions = new MethodFactory("gen_create_regions")
                            .AddParam("world")
                            .AddCode(new Variable("player", "world.player"))
@@ -194,47 +191,76 @@ public class RegionFactory(WorldFactory worldFactory)
                            .AddCode(
                                 new MappedVariable<string, string>(
                                     "region_map",
-                                    Regions.ToDictionary(
-                                        r => r.Surround("\""), r => $"Region(\"{r}\", world.player, world.multiworld)"
-                                    )
+                                    regionGroups.First(g => g.Key is "").Select(kv => kv.Key)
+                                                .ToDictionary(
+                                                     r => r.Surround("\""),
+                                                     r => $"Region(\"{r}\", world.player, world.multiworld)"
+                                                 )
                                 )
-                            ).AddNewLine()
-                           .AddCode(CreateRegionCode).AddNewLine()
-                           .AddCode(
-                                new ForLoopFactory("region", "region_map.values()")
-                                   .AddCode("world.multiworld.regions.append(region)")
-                            );
+                            ).AddNewLine();
+
+        foreach (var group in regionGroups.Where(g => g.Key is not ""))
+        {
+            createRegions.AddCode(
+                new IfFactory(group.Key).AddCode(
+                    group.Select(kv
+                        => $"region_map[\"{kv.Key}\"] = Region(\"{kv.Key}\", world.player, world.multiworld)"
+                    ).ToArray()
+                )
+            );
+        }
+
+        createRegions.AddCode(CreateRegionCode).AddNewLine()
+                     .AddCode(
+                          new ForLoopFactory("region", "region_map.values()")
+                             .AddCode("world.multiworld.regions.append(region)")
+                      );
 
         regionPy.AddObject(createRegions)
                 .AddObject(
-                     new MethodFactory("make_location")
-                        .AddParams("world", "location_name", "region", "rule_map")
+                     new MethodFactory("connect_region")
+                        .AddParams("from_region", "to_region", "region_map", "name", "rule")
                         .AddCode(
                              """
+                             if from_region not in region_map: return
+                             if to_region not in region_map: return
+                             region_map[from_region].connect(region_map[to_region], name, rule = rule)
+                             """
+                         )
+                 )
+                .AddObject(
+                     new MethodFactory("make_location")
+                        .AddParams("world", "location_name", "region_name", "region_map", "rule_map")
+                        .AddCode(
+                             """
+                             if region_name not in region_map: return None
                              world.location_count += 1
-                             return make_location_adv(world, location_name, location_name, world.location_name_to_id[location_name], region, rule_map)
+                             return make_location_adv(world, location_name, location_name, world.location_name_to_id[location_name], region_name, region_map, rule_map)
                              """
                          )
                  )
                 .AddObject(
                      new MethodFactory("make_event_location")
                         .AddParams(
-                             "world", "location_name_a", "location_name_b", "item_name", "id", "region", "rule_map"
+                             "world", "location_name_a", "location_name_b", "item_name", "id", "region_name", "region_map", "rule_map"
                          )
                         .AddCode(
                              """
-                             location = make_location_adv(world, location_name_a, location_name_b, id, region, rule_map)
-                             location.place_locked_item(Item(item_name, ItemClassification.progression, None, world.player))
+                             if region_name not in region_map: return None
+                             location = make_location_adv(world, location_name_a, location_name_b, id, region_name, region_map, rule_map)
+                             if location is None: return None
+                             return location.place_locked_item(Item(item_name, ItemClassification.progression, None, world.player))
                              """
                          )
                  )
                 .AddObject(
                      new MethodFactory("make_location_adv")
-                        .AddParams("world", "location_name_a", "location_name_b", "id", "region", "rule_map")
+                        .AddParams("world", "location_name_a", "location_name_b", "id", "region_name", "region_map", "rule_map")
                         .AddCode(
                              """
-                             location = Location(world.player, location_name_a, id, region)
-                             region.locations.append(location)
+                             if region_name not in region_map: return None
+                             location = Location(world.player, location_name_a, id, region_map[region_name])
+                             region_map[region_name].locations.append(location)
 
                              if location_name_b in rule_map:
                                 location.access_rule = rule_map[location_name_b]
@@ -259,15 +285,11 @@ public readonly struct RegionData(string from, string to, string rule = "", stri
     public readonly string Name = name is "" ? "" : name.Surround('"');
 
     public override string ToString()
-    {
-        return Rule is not ""
-            ? $"region_map[{From}].connect(region_map[{To}], {(Name is "" ? "rule =" : $"{Name},")} lambda state: {Rule})"
-            : $"region_map[{From}].connect(region_map[{To}]{(Name is "" ? "" : $", {Name}")})";
-    }
+        => $"connect_region({From}, {To}, region_map, {(Name is "" ? "None" : Name)}, {(Rule is "" ? "None" : $"lambda state: {Rule}")})";
 }
 
-public readonly struct EventLocationData
-    (string region, string locationName, string lockedItemName, string inheritLocationRule = "")
+public readonly struct EventLocationData(string region, string locationName, string lockedItemName,
+    string inheritLocationRule = "")
 {
     public readonly string Region = region.Surround('"');
     public readonly string LocationName = locationName.Surround('"');
@@ -275,18 +297,15 @@ public readonly struct EventLocationData
     public readonly string ItemName = lockedItemName.Surround('"');
 
     public override string ToString()
-        => $"make_event_location(world, {LocationName}, {InheritLocationRule}, {ItemName}, None, region_map[{Region}], rule_map)";
+        => $"make_event_location(world, {LocationName}, {InheritLocationRule}, {ItemName}, None, {Region}, region_map, rule_map)";
 }
 
-public readonly struct LocationData
-(
-    string region, string locationName,
-    RegionFactory.LocationProgressType locationProgress = RegionFactory.LocationProgressType.Default
-)
+public readonly struct LocationData(string region, string locationName,
+    RegionFactory.LocationProgressType locationProgress = RegionFactory.LocationProgressType.Default)
 {
     public readonly string Region = region.Surround('"');
     public readonly string LocationName = locationName.Surround('"');
     public readonly RegionFactory.LocationProgressType LocationProgress = locationProgress;
 
-    public override string ToString() => $"make_location(world, {LocationName}, region_map[{Region}], rule_map)";
+    public override string ToString() => $"make_location(world, {LocationName}, {Region}, region_map, rule_map)";
 }

@@ -47,12 +47,6 @@ public partial class ApClient
     public event Action<ApClient>? OnConnectionEvent;
     public event Action<int>? OnPlayerStateChanged;
     public event Action? OnConnectionLost;
-    public event Action<HintPrintJsonPacket>? OnHintPrintJsonPacketReceived;
-    public event Action<ChatPrintJsonPacket>? OnChatPrintPacketReceived;
-    public event Action<BouncedPacket>? OnBouncedPacketReceived;
-    public event Action<PrintJsonPacket>? OnPrintJsonPacketReceived;
-    public event Action<PrintJsonPacket>? OnServerMessagePacketReceived;
-    public event Action<PrintJsonPacket>? OnItemLogPacketReceived;
     public event Action<string>? ItemsSentNotification;
     public event Action<ReadOnlyCollection<long>>? CheckedLocationsUpdated;
     public event ArchipelagoSocketHelperDelagates.ErrorReceivedHandler? OnConnectionErrorReceived;
@@ -101,66 +95,7 @@ public partial class ApClient
             );
 
             CommandHandler = new ApCommandHandler(this);
-            Session.Socket.PacketReceived += packet =>
-            {
-                switch (packet)
-                {
-                    case HintPrintJsonPacket hintPacket:
-                        OnHintPrintJsonPacketReceived?.Invoke(hintPacket);
-                        break;
-                    case ChatPrintJsonPacket message:
-                        OnChatPrintPacketReceived?.Invoke(message);
-
-                        if (message.Message.StartsWith($"@{PlayerName} "))
-                        {
-                            CommandHandler.RunCommand(
-                                message,
-                                message.Message.Replace($"@{PlayerName} ", "").Split(' ')
-                            );
-                        }
-
-                        break;
-                    case BouncedPacket bouncedPacket:
-                        OnBouncedPacketReceived?.Invoke(bouncedPacket);
-
-                        if (bouncedPacket.Tags.Contains("TrapLink"))
-                        {
-                            if (!Tags[ArchipelagoTag.TrapLink]) return;
-                            var source = (string)bouncedPacket.Data["source"]!;
-                            if (source == PlayerName && ExcludeBouncedPacketsFromSelf) return;
-                            var trap = (string)bouncedPacket.Data["trap_name"]!;
-
-                            if (TrapLink.ContainsKey(trap)) { TrapLink[trap](source); }
-                            else { OnUnregisteredTrapLinkReceived?.Invoke(source, trap); }
-                        }
-
-                        if (bouncedPacket.Tags.Contains("RingLink"))
-                        {
-                            if (!Tags[ArchipelagoTag.RingLink]) return;
-                            var source = PlayerNames[(int)bouncedPacket.Data["source"]!];
-                            if (source == PlayerName && ExcludeBouncedPacketsFromSelf) return;
-                            var amount = (int)bouncedPacket.Data["amount"]!;
-                            OnRingLinkPacketReceived?.Invoke(source, amount);
-                        }
-
-                        break;
-                    case PrintJsonPacket printPacket:
-                        OnPrintJsonPacketReceived?.Invoke(printPacket);
-                        if (printPacket.Data.Length == 1)
-                        {
-                            OnServerMessagePacketReceived?.Invoke(printPacket);
-                            return;
-                        }
-
-                        if (printPacket.Data.Length < 2) break;
-                        if (printPacket.Data[1].Text is " found their " or " sent ")
-                        {
-                            OnItemLogPacketReceived?.Invoke(printPacket);
-                        }
-
-                        break;
-                }
-            };
+            Session.Socket.PacketReceived += OnPacketReceived;
             
             SetupDeathLink();
 

@@ -1,23 +1,29 @@
 ﻿namespace CreepyUtil.Archipelago;
 
-public class LimitedQueue<T>(int limit = -1)
+public class LimitedQueue<T>(int limit)
 {
-    public static int Limit = 200;
+    public int Limit = limit; 
     private Queue<T> Queue = [];
-    private int LocalLimit = limit == -1 ? Limit : limit;
+    private int LocalLimit => Limit == -1 ? 200 : Limit;
 
-    public bool Add(T t)
+    public bool Add(T t, Action<T>? removedObj = null)
     {
         Queue.Enqueue(t);
+        return Update(removedObj);
+    }
+
+    public bool Update(Action<T>? removedObj = null)
+    {
         var removed = Queue.Count > LocalLimit;
         while (Queue.Count > LocalLimit)
         {
-            Queue.Dequeue();
+            var objRemoved = Queue.Dequeue();
+            removedObj?.Invoke(objRemoved);
         }
 
         return removed;
     }
-
+    
     public bool Enqueue(T t) => Add(t);
     public T Dequeue() => Queue.Dequeue();
     public int Count() => Queue.Count;

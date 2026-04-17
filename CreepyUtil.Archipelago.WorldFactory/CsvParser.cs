@@ -2,7 +2,7 @@
 
 public class CsvParser
 {
-    private string[][] Csv;
+    private readonly string[][] Csv;
 
     public CsvParser(string file, int topLineSkip, int leftLineSkip)
     {
@@ -33,12 +33,12 @@ public class CsvParser
                     }
                     
                     if (col is "" or "\"") continue;
-                    current[current.Count - 1] = current.Last() + ',' + (isOpen ? col : col.Substring(0, col.Length - 1));
+                    current[^1] = current.Last() + ',' + (isOpen ? col : col[..^1]);
                     continue;
                 }
 
                 isOpen = col[0] is '"';
-                current.Add(isOpen ? col.Substring(1) : col);
+                current.Add(isOpen ? col[1..] : col);
             }
             
             cells.Add(current);
@@ -50,7 +50,7 @@ public class CsvParser
     public T[] ReadTable<T>(CsvTableRowCreator<T> creator, int start, int length, Action<Exception, int>? onError = null)
         => Csv
           .Select(line => line.Skip(start).Take(length).ToArray())
-          .Where(line => line.Any())
+          .Where(line => line.Length != 0)
           .Where(creator.IsTableNotEmpty)
           .Select((line, i) =>
            {

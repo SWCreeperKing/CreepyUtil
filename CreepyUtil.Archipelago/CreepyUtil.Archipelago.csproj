@@ -17,6 +17,7 @@
 
         <Deathlinkipelago>$(GodotDirectory)\deathlinkipelago</Deathlinkipelago>
         <HydraClient>$(GodotDirectory)\archipelagomultitextclient\Lib</HydraClient>
+        <HydraClientRecode>$(GodotDirectory)\hydra-text-client\Lib</HydraClientRecode>
 
         <PPDS>$(SteamLibraryD)\Placid Plastic Duck Simulator</PPDS>
         <PowerWash>$(SteamLibraryF)\PowerWash Simulator</PowerWash>
@@ -56,6 +57,10 @@
         <Copy SourceFiles="$(ProjectBin)\Debug\net6.0/CreepyUtil.Archipelago.dll" DestinationFolder="$(HydraClient)"/>
         <Copy SourceFiles="$(ProjectBin)\Debug\net6.0/Newtonsoft.Json.dll" DestinationFolder="$(HydraClient)"/>
         <Copy SourceFiles="$(ProjectBin)\Debug\net6.0/Archipelago.MultiClient.Net.dll" DestinationFolder="$(HydraClient)"/>
+        
+        <Copy SourceFiles="$(ProjectBin)\Debug\net6.0/CreepyUtil.Archipelago.dll" DestinationFolder="$(HydraClientRecode)"/>
+        <Copy SourceFiles="$(ProjectBin)\Debug\net6.0/Newtonsoft.Json.dll" DestinationFolder="$(HydraClientRecode)"/>
+        <Copy SourceFiles="$(ProjectBin)\Debug\net6.0/Archipelago.MultiClient.Net.dll" DestinationFolder="$(HydraClientRecode)"/>
 
         <Copy SourceFiles="$(ProjectBin)\Debug\net6.0/BundledApClient.dll" DestinationFolder="$(Deathlinkipelago)\DeathLinkipelago\Lib"/>
         <Copy SourceFiles="$(ProjectBin)\Debug\net6.0/BundledApClient.dll" DestinationFolder="$(Deathlinkipelago)\DeathlinkipelagoCLI\Lib"/>

@@ -82,11 +82,28 @@ public partial class ApClient
         return false;
     }
     
-    public ScoutedItemInfo? ScoutLocation(string id)
+    public ScoutedItemInfo? ScoutLocation(string id, HintCreationPolicy hintCreationPolicy = HintCreationPolicy.None)
     {
         var location = Locations[id];
-        var items = Session?.Locations.ScoutLocationsAsync(location).GetAwaiter().GetResult();
+        var items = Session?.Locations.ScoutLocationsAsync(hintCreationPolicy, location).GetAwaiter().GetResult();
         return items?[location];
+    }
+    
+    public ScoutedItemInfo?[] ScoutLocations(string[] ids, HintCreationPolicy hintCreationPolicy = HintCreationPolicy.None)
+    {
+        var locations = ids.Select(id => Locations[id]).ToArray();
+        var items = Session?.Locations.ScoutLocationsAsync(hintCreationPolicy, locations).GetAwaiter().GetResult();
+        return locations.Where(loc => items is not null && items.ContainsKey(loc)).Select(loc => items![loc]).ToArray();
+    }
+
+    public void CreateHints(HintStatus status = HintStatus.Unspecified, params string[] locations)
+    {
+        Session?.Hints.CreateHints(status, locations.Select(id => Locations[id]).ToArray());
+    }
+    
+    public void CreateHints(HintStatus status = HintStatus.Unspecified, params long[] locations)
+    {
+        Session?.Hints.CreateHints(status, locations);
     }
 
     public void SetupPlayerList()

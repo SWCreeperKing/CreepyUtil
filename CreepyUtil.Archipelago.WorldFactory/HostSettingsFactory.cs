@@ -33,7 +33,7 @@ public class HostSettingsFactory(WorldFactory worldFactory)
     }
 
     public void GenerateHostSettingsFile(
-        string fileOutput = "Settings.py", string imports = "from settings import Group, Bool"
+        string fileOutput = "Settings.py", string imports = "from settings import *\nfrom typing import *"
     )
     {
         var settingsClass
@@ -60,7 +60,7 @@ public readonly struct Bool(string settingName, string comment, bool value) : IH
                                            .AddComment(comment);
 
     public IPythonVariable GetVariable() => new Variable(
-        settingName.ToLower().Replace(" ", "_"), value ? "True" : "False"
+        settingName.FormatStringForOptionsVar(), value ? "True" : "False"
     );
 }
 

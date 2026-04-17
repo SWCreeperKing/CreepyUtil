@@ -31,39 +31,56 @@ public partial class WorldFactory(string gameName)
     }
 }
 
-public class WorldInitFactory
-(
-    WorldFactory worldFactory, string imports = """
-                                                from .Locations import *
-                                                from .Rules import *
-                                                from .Options import *
-                                                from .Items import *
-                                                from .Regions import *
-                                                from .Settings import *
-                                                from typing import *
-                                                """
-)
+public class WorldInitFactory(WorldFactory worldFactory,
+    string imports = """
+                     from .Locations import *
+                     from .Rules import *
+                     from .Options import *
+                     from .Items import *
+                     from .Regions import *
+                     from .Settings import *
+                     from typing import *
+                     """)
 {
-    public string InitGeneratorLink
-        = "No Link Given"; // link to (preferably github) of where you use the location generator, inserts it into the .py
+    public string
+        InitGeneratorLink
+            = "No Link Given"; // link to (preferably github) of where you use the location generator, inserts it into the .py
 
     private WorldFactory WorldFactory = worldFactory;
 
     private PythonFactory WorldFile = new PythonFactory().AddImport("from worlds.AutoWorld import World")
                                                          .AddImports(imports);
 
-    private PythonClassFactory WorldClass
-        = new PythonClassFactory(worldFactory.GameName.Replace(" ", ""))
-         .AddComment(worldFactory.GameName).AddParameter("World")
-         .AddVariable(new Variable("game", worldFactory.GameName.Surround('"')))
-         .AddVariable(new Variable("options_dataclass", $"{worldFactory.GameName.Replace(" ", "")}Options"))
-         .AddVariable(new Variable("options", "", $"{worldFactory.GameName.Replace(" ", "")}Options"))
-         .AddVariable(new Variable("settings", type: $"ClassVar[{worldFactory.GameName.Replace(" ", "")}Settings]"))
-         .AddVariable(
-              new Variable("location_name_to_id", "{value: location_dict.index(value) + 1 for value in location_dict}")
-          )
-         .AddVariable(new Variable("item_name_to_id", "{value: raw_items.index(value) + 1 for value in raw_items}"))
-         .AddVariable(new Variable("topology_present", "True"));
+    private PythonClassFactory WorldClass =
+        new PythonClassFactory(worldFactory.GameName.Replace(" ", ""))
+           .AddComment(worldFactory.GameName).AddParameter("World")
+           .AddVariable(new Variable("game", worldFactory.GameName.Surround('"')))
+           .AddVariable(
+                new Variable(
+                    "options_dataclass",
+                    $"{worldFactory.GameName.Replace(" ", "")}Options"
+                )
+            )
+           .AddVariable(new Variable("options", "", $"{worldFactory.GameName.Replace(" ", "")}Options"))
+           .AddVariable(
+                new Variable(
+                    "settings",
+                    type: $"ClassVar[{worldFactory.GameName.Replace(" ", "")}Settings]"
+                )
+            )
+           .AddVariable(
+                new Variable(
+                    "location_name_to_id",
+                    "{value: location_dict.index(value) + 1 for value in location_dict}"
+                )
+            )
+           .AddVariable(
+                new Variable(
+                    "item_name_to_id",
+                    "{value: raw_items.index(value) + 1 for value in raw_items}"
+                )
+            )
+           .AddVariable(new Variable("topology_present", "True"));
 
     private MethodFactory? InitFunction;
     private MethodFactory? GenerateEarly;
@@ -73,20 +90,12 @@ public class WorldInitFactory
     private MethodFactory? SetRules;
     private MethodFactory? FillSlotData;
     private MethodFactory? GenerateOutput;
+    private Dictionary<string, string> ItemNameGroups = [];
+    private Dictionary<string, string> LocationNameGroups = [];
 
     public WorldInitFactory AddImports(string imports)
     {
         WorldFile.AddImports(imports);
-        return this;
-    }
-
-    public WorldInitFactory AddItemNameGroups(Dictionary<string, string> groups, bool stringify = true)
-    {
-        WorldClass.AddVariable(
-            new MappedVariable<string, string>(
-                "item_name_groups", stringify ? groups.ToDictionary(kv => kv.Key.Surround('"'), kv => kv.Value) : groups
-            )
-        );
         return this;
     }
 
@@ -119,9 +128,8 @@ public class WorldInitFactory
         return this;
     }
 
-    public WorldInitFactory AddUseUniversalTrackerPassthrough(
-        Action<CodeBlockFactory>? utBlock = null, bool addOptionsFromSlotData = true, bool yamlNeeded = true
-    )
+    public WorldInitFactory AddUseUniversalTrackerPassthrough(Action<CodeBlockFactory>? utBlock = null,
+        bool addOptionsFromSlotData = true, bool yamlNeeded = true)
     {
         var ut = new CodeBlockFactory()
                 .AddCode($"if {WorldFactory.GameName.Surround('"')} not in self.multiworld.re_gen_passthrough: return")
@@ -135,9 +143,9 @@ public class WorldInitFactory
             {
                 ut.AddCode(
                     PremadePython.CreateUtPassthrough(
-                        option.ToLower().Replace(" ", "_").Surround('"'),
-                        $"options.{option.ToLower().Replace(" ", "_")}",
-                        $"{option.Replace(" ", "")}(passthrough[{option.ToLower().Replace(" ", "_").Surround('"')}])"
+                        option.FormatStringForOptionsVar(stringify: true),
+                        $"options.{option.FormatStringForOptionsVar()}",
+                        $"{option.FormatStringForOptionsVar(true)}(passthrough[{option.FormatStringForOptionsVar(stringify: true)}])"
                     )
                 );
             }
@@ -185,10 +193,9 @@ public class WorldInitFactory
         return this;
     }
 
-    public WorldInitFactory UseFillSlotData(
-        Dictionary<string, string>? slotData = null, Action<MethodFactory>? action = null, bool stringify = true,
-        bool addOptionsToSlotData = true
-    )
+    public WorldInitFactory UseFillSlotData(Dictionary<string, string>? slotData = null,
+        Action<MethodFactory>? action = null, bool stringify = true,
+        bool addOptionsToSlotData = true)
     {
         FillSlotData ??= new MethodFactory("fill_slot_data").AddParam("self");
         action?.Invoke(FillSlotData);
@@ -199,8 +206,8 @@ public class WorldInitFactory
         {
             foreach (var option in WorldFactory.GetOptionsFactory().OptionNames)
             {
-                finalData[option.Key.Replace(" ", "_").ToLower().Surround('"')]
-                    = $"{option.Value}(self.options.{option.Key.Replace(" ", "_").ToLower()})";
+                finalData[option.Key.FormatStringForOptionsVar(stringify: true)]
+                    = $"{option.Value}(self.options.{option.Key.FormatStringForOptionsVar()})";
             }
         }
 
@@ -235,9 +242,40 @@ public class WorldInitFactory
         return this;
     }
 
+    public WorldInitFactory UseItemGroups(Dictionary<string, ICollection> groups)
+        => UseItemGroups(groups.ToDictionary(kv => kv.Key, kv => kv.Value.GetText()));
+
+    public WorldInitFactory UseItemGroups(Dictionary<string, string> groups)
+    {
+        ItemNameGroups = groups;
+        return this;
+    }
+
+    public WorldInitFactory UseLocationGroups(Dictionary<string, ICollection> groups)
+        => UseLocationGroups(groups.ToDictionary(kv => kv.Key, kv => kv.Value.GetText()));
+
+    public WorldInitFactory UseLocationGroups(Dictionary<string, string> groups)
+    {
+        LocationNameGroups = groups;
+        return this;
+    }
+
     public void GenerateInitFile()
     {
         WorldFile.AddObject(new Comment($"File is Auto-generated, see: [{InitGeneratorLink}]"));
+
+        WorldClass.AddVariable(
+            new MappedVariable<string, string>(
+                "item_name_groups", ItemNameGroups.ToDictionary(kv => kv.Key.Surround('"'), kv => kv.Value)
+            )
+        );
+
+        WorldClass.AddVariable(
+            new MappedVariable<string, string>(
+                "location_name_groups",
+                LocationNameGroups.ToDictionary(kv => kv.Key.Surround('"'), kv => kv.Value)
+            )
+        );
 
         WorldClass
            .AddMethods(

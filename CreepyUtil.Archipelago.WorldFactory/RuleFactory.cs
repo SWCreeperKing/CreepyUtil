@@ -24,7 +24,7 @@ public partial class WorldFactory
               .AddLogicFunction("any", "has_any",
                    $"return any(has({string.Join(", ", DefaultParams)}, item) for item in items)", "items")
               .AddLogicFunction("all", "has_all",
-                   $"return any(has({string.Join(", ", DefaultParams)}, item) for item in items)", "items");
+                   $"return all(has({string.Join(", ", DefaultParams)}, item) for item in items)", "items");
     }
 }
 
