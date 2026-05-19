@@ -5,7 +5,7 @@ public partial class ApClient
     /// <summary>
     /// Source, Message, Group
     /// </summary>
-    public event Action<string, string, string>? OnDeathLinkPacketReceived;
+    public event Action<string[], string, string?>? OnDeathLinkPacketReceived;
 
     public HashSet<string> DeathLinkGroups = [""];
 
@@ -18,15 +18,12 @@ public partial class ApClient
                              .Select(tag => tag.Substring(9))
                              .Where(group => DeathLinkGroups.Contains(group))
                              .ToArray();
-            
+
             if (tags.Length == 0) return;
             var source = (string)packet.Data["source"]!;
-            var message = packet.Data.TryGetValue("cause", out var cause)
-                ? (string)cause!
-                : "Died a generic (unknown) death";
+            var message = packet.Data.TryGetValue("cause", out var cause) ? (string)cause! : null;
             if (source == PlayerName && ExcludeBouncedPacketsFromSelf) return;
-
-            foreach (var group in tags) OnDeathLinkPacketReceived?.Invoke(group, source, message);
+            OnDeathLinkPacketReceived?.Invoke(tags, source, message);
         };
     }
 
@@ -35,15 +32,15 @@ public partial class ApClient
         if (!Tags[ArchipelagoTag.DeathLink])
             throw new ArgumentException("Cannot send deathlink if client does not have the deathlink tag");
         new Task(() =>
-            {
-                lock (Session!)
                 {
-                    foreach (var group in DeathLinkGroups)
+                    lock (Session!)
                     {
-                        Session?.Socket.SendPacketAsync(PacketMaker.CreateDeathLinkPacket(group, PlayerName, cause));
+                        Session?.Socket.SendPacketAsync(
+                            PacketMaker.CreateDeathLinkPacket(DeathLinkGroups, PlayerName, cause)
+                        );
                     }
                 }
-            })
+            )
            .RunWithTimeout(ServerTimeout, OnErrorReceived);
     }
 }

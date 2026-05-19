@@ -70,7 +70,7 @@
         <Copy SourceFiles="$(ProjectBin)\Debug\net6.0/BundledApClient.dll" DestinationFolder="$(VampireSurvivors)\UserLibs"/>
 
         <Copy SourceFiles="$(ProjectBin)\Debug\net6.0/BundledApClient.dll" DestinationFolder="$(PPDS)\mod dev\PPDSAP\lib"/>
-        <Copy SourceFiles="$(ProjectBin)\Debug\net6.0/BundledApClient.dll" DestinationFolder="$(PPDS)\Mods\SW_CreeperKing.ArchipelagoMod/lib"/>
+        <Copy SourceFiles="$(ProjectBin)\Debug\net6.0/BundledApClient.dll" DestinationFolder="$(PPDS)\UserLibs"/>
     </Target>
 
     <Target Name="AfterBuild472" AfterTargets="Build" Condition="'$(TargetFramework)' == 'net472'">
@@ -85,7 +85,7 @@
         <Copy SourceFiles="$(ProjectBin)\Debug\net472/BundledApClient.dll" DestinationFolder="$(WidgetInc)\Mods\SW_CreeperKing.Widgitpelago\Lib"/>
 
         <Copy SourceFiles="$(ProjectBin)\Debug\net472/BundledApClient.dll" DestinationFolder="$(TheWereCleaner)\mod dev\Werepelago\Werepelago\Lib"/>
-        <Copy SourceFiles="$(ProjectBin)\Debug\net472/BundledApClient.dll" DestinationFolder="$(TheWereCleaner)\Mods\SW_CreeperKing.Werepelago\Lib"/>
+        <Copy SourceFiles="$(ProjectBin)\Debug\net472/BundledApClient.dll" DestinationFolder="$(TheWereCleaner)\UserLibs"/>
 
         <Copy SourceFiles="$(ProjectBin)\Debug\net472/BundledApClient.dll" DestinationFolder="$(PlagueInc)\mod dev\Plaguepelago\Plaguepelago\Lib"/>
         <Copy SourceFiles="$(ProjectBin)\Debug\net472/BundledApClient.dll" DestinationFolder="$(PlagueInc)\Mods\SW_CreeperKing.Plaguepelago\Lib"/>

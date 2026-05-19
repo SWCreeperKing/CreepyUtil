@@ -4,10 +4,9 @@ namespace CreepyUtil.DiscordRpc;
 
 public class DiscordIntegration
 {
-    public static string DiscordAppId = string.Empty;
     public static DiscordRpcClient Discord;
     public static bool DiscordAlive;
-    public static DateTime Now;
+    public static DateTime? Now = null;
     public static Func<string>? Details;
     public static Func<string>? State;
     public static Func<string>? LargeImage;
@@ -16,24 +15,16 @@ public class DiscordIntegration
     public static Func<string>? SmallText;
     public static Action<string>? LogOut;
     
-    private static bool InitDiscord;
-    
-    public static void Init(string discordAppId)
-    {
-        if (InitDiscord) return;
-        InitDiscord = true;
-        DiscordAppId = discordAppId;
-        if (discordAppId != string.Empty) CheckDiscord(discordAppId);
-        Now = DateTime.UtcNow;
-    }
-
     public static void CheckDiscord(string appId, bool retry = true)
     {
         if (appId == string.Empty) return;
+
+        Now ??= DateTime.UtcNow;
+        
         DiscordAlive = true;
         try
         {
-            Discord.UpdateStartTime(Now);
+            Discord.UpdateStartTime(Now.Value);
         }
         catch
         {
@@ -89,5 +80,10 @@ public class DiscordIntegration
             DiscordAlive = false;
             LogOut?.Invoke($"Error: {e.Message}\n{e.StackTrace}");
         }
+    }
+
+    public static void Dispose()
+    {
+        Discord.Dispose();
     }
 }

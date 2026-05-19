@@ -48,12 +48,16 @@ public class WorldInitFactory(WorldFactory worldFactory,
 
     private WorldFactory WorldFactory = worldFactory;
 
-    private PythonFactory WorldFile = new PythonFactory().AddImport("from worlds.AutoWorld import World")
+    private PythonFactory WorldFile = new PythonFactory().AddImport("from worlds.AutoWorld import *")
                                                          .AddImports(imports);
 
     private PythonClassFactory WorldClass =
         new PythonClassFactory(worldFactory.GameName.Replace(" ", ""))
            .AddComment(worldFactory.GameName).AddParameter("World")
+           .AddClass(
+                new PythonClassFactory($"{worldFactory.GameName.Replace(" ", "")}Web").AddParameter("WebWorld")
+                   .AddVariable(new Variable("tutorials", "[]"))
+            )
            .AddVariable(new Variable("game", worldFactory.GameName.Surround('"')))
            .AddVariable(
                 new Variable(
@@ -68,20 +72,10 @@ public class WorldInitFactory(WorldFactory worldFactory,
                     type: $"ClassVar[{worldFactory.GameName.Replace(" ", "")}Settings]"
                 )
             )
-           .AddVariable(
-                new Variable(
-                    "location_name_to_id",
-                    "{value: location_dict.index(value) + 1 for value in location_dict}"
-                )
-            )
-           .AddVariable(
-                new Variable(
-                    "item_name_to_id",
-                    "{value: raw_items.index(value) + 1 for value in raw_items}"
-                )
-            )
            .AddVariable(new Variable("topology_present", "True"));
 
+    public string LocationNameToIdMap = "{value: location_dict.index(value) + 1 for value in location_dict}";
+    public string ItemNameToIdMap = "{value: raw_items.index(value) + 1 for value in raw_items}";
     private MethodFactory? InitFunction;
     private MethodFactory? GenerateEarly;
     private MethodFactory? CreateRegions;
@@ -264,18 +258,27 @@ public class WorldInitFactory(WorldFactory worldFactory,
     {
         WorldFile.AddObject(new Comment($"File is Auto-generated, see: [{InitGeneratorLink}]"));
 
-        WorldClass.AddVariable(
-            new MappedVariable<string, string>(
-                "item_name_groups", ItemNameGroups.ToDictionary(kv => kv.Key.Surround('"'), kv => kv.Value)
-            )
-        );
+        WorldClass.AddVariable(new Variable("location_name_to_id", LocationNameToIdMap))
+                  .AddVariable(new Variable("item_name_to_id", ItemNameToIdMap));
 
-        WorldClass.AddVariable(
-            new MappedVariable<string, string>(
-                "location_name_groups",
-                LocationNameGroups.ToDictionary(kv => kv.Key.Surround('"'), kv => kv.Value)
-            )
-        );
+        if (ItemNameGroups.Count != 0)
+        {
+            WorldClass.AddVariable(
+                new MappedVariable<string, string>(
+                    "item_name_groups", ItemNameGroups.ToDictionary(kv => kv.Key.Surround('"'), kv => kv.Value)
+                )
+            );
+        }
+
+        if (LocationNameGroups.Count != 0)
+        {
+            WorldClass.AddVariable(
+                new MappedVariable<string, string>(
+                    "location_name_groups",
+                    LocationNameGroups.ToDictionary(kv => kv.Key.Surround('"'), kv => kv.Value)
+                )
+            );
+        }
 
         WorldClass
            .AddMethods(

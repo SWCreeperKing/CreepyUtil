@@ -2,7 +2,7 @@
 
 public class LimitedList<T>(int limit)
 {
-    public int Limit = limit; 
+    public int Limit = limit;
     private List<T> List = [];
     private int LocalLimit => Limit == -1 ? 200 : Limit;
     public int Count => List.Count;
@@ -31,14 +31,7 @@ public class LimitedList<T>(int limit)
 
     public void ForEach(Action<T> action)
     {
-        try
-        {
-            foreach (var item in List) { action(item); }
-        }
-        catch (InvalidOperationException)
-        {
-            //ignored
-        }
+        foreach (var item in List) action(item);
     }
 
     public T this[int index] => List[index];

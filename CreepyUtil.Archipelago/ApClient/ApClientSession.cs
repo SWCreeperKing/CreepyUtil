@@ -81,17 +81,31 @@ public partial class ApClient
         catch (Exception e) { OnErrorReceived?.Invoke(e); }
         return false;
     }
-    
+
     public ScoutedItemInfo? ScoutLocation(string id, HintCreationPolicy hintCreationPolicy = HintCreationPolicy.None)
     {
-        var location = Locations[id];
+        if (!Locations.TryGetValue(id, out var location))
+        {
+            OnErrorReceived?.Invoke(new ArgumentException($"Location: [{id}] does not exist to scout"));
+            return null;
+        }
+
         var items = Session?.Locations.ScoutLocationsAsync(hintCreationPolicy, location).GetAwaiter().GetResult();
         return items?[location];
     }
-    
-    public ScoutedItemInfo?[] ScoutLocations(string[] ids, HintCreationPolicy hintCreationPolicy = HintCreationPolicy.None)
+
+    public ScoutedItemInfo?[]? ScoutLocations(string[] ids,
+        HintCreationPolicy hintCreationPolicy = HintCreationPolicy.None)
     {
-        var locations = ids.Select(id => Locations[id]).ToArray();
+        var locationsNotFound = ids.Where(id => Locations.All(kv => kv.Key != id)).ToArray();
+        if (locationsNotFound.Length != 0)
+        {
+            OnErrorReceived?.Invoke(
+                new ArgumentException($"Locations: [{string.Join(", ", locationsNotFound)}] does not exist to scout")
+            );
+        }
+
+        var locations = ids.Where(id => Locations.Any(kv => kv.Key == id)).Select(id => Locations[id]).ToArray();
         var items = Session?.Locations.ScoutLocationsAsync(hintCreationPolicy, locations).GetAwaiter().GetResult();
         return locations.Where(loc => items is not null && items.ContainsKey(loc)).Select(loc => items![loc]).ToArray();
     }
@@ -100,7 +114,7 @@ public partial class ApClient
     {
         Session?.Hints.CreateHints(status, locations.Select(id => Locations[id]).ToArray());
     }
-    
+
     public void CreateHints(HintStatus status = HintStatus.Unspecified, params long[] locations)
     {
         Session?.Hints.CreateHints(status, locations);
@@ -111,7 +125,7 @@ public partial class ApClient
         if (HasPlayerListSetup) return;
         HasPlayerListSetup = true;
         PlayerStates = PlayerNames.Select(_ => ArchipelagoClientState.ClientUnknown).ToArray();
-        
+
         for (var i = 0; i < PlayerNames.Length; i++)
         {
             var i1 = i;
@@ -151,8 +165,9 @@ public partial class ApClient
 
         if (!dict.TryGetValue(id, out var location))
         {
-            location = _LocationIdToName[game][id]
-                = Session!.Locations.GetLocationNameFromId(id, PlayerGames[playerSlot]);
+            location = _LocationIdToName[game][id] = Session!.Locations.GetLocationNameFromId(
+                id, PlayerGames[playerSlot]
+            );
         }
 
         return location;

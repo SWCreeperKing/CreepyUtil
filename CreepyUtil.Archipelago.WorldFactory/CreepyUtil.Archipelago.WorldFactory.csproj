@@ -7,7 +7,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-        <Version>0.2.0.7</Version>
+        <Version>0.2.1.10</Version>
         <Title>SW_CreeperKing's Archipelago World Factory Utility</Title>
         <Description>A Utility for reading in a CSV and creating ApWorlds</Description>
         <PackageId>CreepyUtil.Archipelago.WorldFactory</PackageId>

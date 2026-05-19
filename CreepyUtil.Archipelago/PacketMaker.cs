@@ -6,9 +6,9 @@ namespace CreepyUtil.Archipelago;
 
 public static class PacketMaker
 {
-    public static BouncePacket CreateDeathLinkPacket(string group, string playerName, string cause) => new()
+    public static BouncePacket CreateDeathLinkPacket(HashSet<string> groups, string playerName, string cause) => new()
     {
-        Tags = [$"DeathLink{group}"],
+        Tags = groups.Select(g => $"DeathLink{g}").ToList(),
         Data = new Dictionary<string, JToken>
         {
             { "time", DateTime.UtcNow.ToUnixTimeStamp() },

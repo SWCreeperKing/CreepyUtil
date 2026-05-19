@@ -2,7 +2,7 @@
 
 public class LimitedQueue<T>(int limit)
 {
-    public int Limit = limit; 
+    public int Limit = limit;
     private Queue<T> Queue = [];
     private int LocalLimit => Limit == -1 ? 200 : Limit;
 
@@ -23,25 +23,15 @@ public class LimitedQueue<T>(int limit)
 
         return removed;
     }
-    
+
     public bool Enqueue(T t) => Add(t);
     public T Dequeue() => Queue.Dequeue();
     public int Count() => Queue.Count;
     public Queue<T> GetQueue => Queue;
     public void Clear() => Queue.Clear();
-    
+
     public void ForEach(Action<T> action)
     {
-        try
-        {
-            foreach (var item in Queue)
-            {
-                action(item);
-            }
-        }
-        catch (InvalidOperationException)
-        {
-            //ignored
-        }
+        foreach (var item in Queue) action(item);
     }
 }

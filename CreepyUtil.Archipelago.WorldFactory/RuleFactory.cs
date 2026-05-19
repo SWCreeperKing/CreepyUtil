@@ -1,4 +1,5 @@
-﻿using static CreepyUtil.Archipelago.WorldFactory.PremadePython;
+﻿using System.Text;
+using static CreepyUtil.Archipelago.WorldFactory.PremadePython;
 using static CreepyUtil.Archipelago.WorldFactory.RuleFactory;
 
 namespace CreepyUtil.Archipelago.WorldFactory;
@@ -21,10 +22,14 @@ public partial class WorldFactory
               .AddLogicFunction("yaml", "get_yaml_option", "return options.get_options_map(option).value", "option")
               .AddLogicFunction("hasN", "has_amount", StateHas("item", "amount", false), "item", "amount")
               .AddCompoundLogicFunction("has", "has", "hasN[item, 1]", "item")
-              .AddLogicFunction("any", "has_any",
-                   $"return any(has({string.Join(", ", DefaultParams)}, item) for item in items)", "items")
-              .AddLogicFunction("all", "has_all",
-                   $"return all(has({string.Join(", ", DefaultParams)}, item) for item in items)", "items");
+              .AddLogicFunction(
+                   "any", "has_any",
+                   $"return any(has({string.Join(", ", DefaultParams)}, item) for item in items)", "items"
+               )
+              .AddLogicFunction(
+                   "all", "has_all",
+                   $"return all(has({string.Join(", ", DefaultParams)}, item) for item in items)", "items"
+               );
     }
 }
 
@@ -44,9 +49,8 @@ public class RuleFactory(WorldFactory worldFactory)
 
     public ILogicCompiler LogicCompiler = new DefaultLogicCompiler();
 
-    public RuleFactory AddLogicFunction(
-        string token, string methodName, IEnumerable<string> code, params string[] parameters
-    ) => AddLogicFunction(token, methodName, string.Join("\n\t", code), parameters);
+    public RuleFactory AddLogicFunction(string token, string methodName, IEnumerable<string> code,
+        params string[] parameters) => AddLogicFunction(token, methodName, string.Join("\n\t", code), parameters);
 
     public RuleFactory AddLogicFunction(string token, string methodName, string code, params string[] parameters)
     {
@@ -56,9 +60,8 @@ public class RuleFactory(WorldFactory worldFactory)
         return this;
     }
 
-    public RuleFactory AddLogicFunction(
-        string token, string methodName, Action<MethodFactory> code, params string[] parameters
-    )
+    public RuleFactory AddLogicFunction(string token, string methodName, Action<MethodFactory> code,
+        params string[] parameters)
     {
         LogicMethodTokens[token] = methodName;
         LogicMethods[methodName] = new MethodFactory(methodName).AddParams(DefaultParams).AddParams(parameters)
@@ -67,9 +70,8 @@ public class RuleFactory(WorldFactory worldFactory)
         return this;
     }
 
-    public RuleFactory AddCompoundLogicFunction(
-        string token, string methodName, string rule, params string[] parameters
-    )
+    public RuleFactory AddCompoundLogicFunction(string token, string methodName, string rule,
+        params string[] parameters)
     {
         AddLogicFunction(token, methodName, $"return {GenerateCompiledRule(rule)}", parameters);
         return this;
@@ -83,12 +85,12 @@ public class RuleFactory(WorldFactory worldFactory)
     }
 
     public RuleFactory AddLogicRules(Dictionary<string, string> rules) => rules.Aggregate(
-        this, (factory, pair) => factory.AddLogicRule(pair.Key, pair.Value));
+        this, (factory, pair) => factory.AddLogicRule(pair.Key, pair.Value)
+    );
 
-    public void GenerateRulesFile(
-        string fileOutput = "Rules.py", string imports = "import math\nfrom .Locations import *",
-        params string[] extraParams
-    )
+    public void GenerateRulesFile(string fileOutput = "Rules.py",
+        string imports = "import math\nfrom .Locations import *",
+        params string[] extraParams)
     {
         var defaultParams = DefaultParams.ToList();
         defaultParams.RemoveAll(s => s is "state");
@@ -98,9 +100,12 @@ public class RuleFactory(WorldFactory worldFactory)
                      .AddParams(extraParams)
                      .AddCode("return {");
 
-        LogicRuleAssociations.Aggregate(ruleMap,
+        LogicRuleAssociations.Aggregate(
+                                  ruleMap,
                                   (factory, pair) => factory.AddCode(
-                                      $"\t\"{pair.Key}\": lambda state: {GenerateCompiledRule(pair.Value)},"))
+                                      $"\t\"{pair.Key}\": lambda state: {GenerateCompiledRule(pair.Value)},"
+                                  )
+                              )
                              .AddCode("}");
 
         var rulePy = new PythonFactory()
@@ -113,7 +118,8 @@ public class RuleFactory(WorldFactory worldFactory)
     }
 
     public string GenerateCompiledRule(string rule) => LogicCompiler.CompileRule(
-        rule.Trim(), LogicMethodTokens, WorldFactory.OnCompilerError);
+        rule.Trim(), LogicMethodTokens, WorldFactory.OnCompilerError
+    );
 
     public Dictionary<string, string> GetRuleMapAssociations()
         => LogicRuleAssociations.ToDictionary(kv => kv.Key, kv => kv.Value);
@@ -128,74 +134,127 @@ public interface ILogicCompiler
 /// how it calls functions:
 /// func[param1, "param2"]
 ///
-/// this is a simple compiler, do not put ] in a string
-/// nor can you do funcA[funcB[]], must be traditional funcA[func_b()]
+/// can not do
+/// func[param1, func2]
+/// due to param names being mixed up in it 
 /// </summary>
 public class DefaultLogicCompiler : ILogicCompiler
 {
-    private Dictionary<string, string> Cache = [];
+    private static Dictionary<string, string> Cache = [];
 
-    public string CompileRule(string rule, Dictionary<string, string> methodTokens, Action<Exception, string>? onError)
+    private List<string> TokenizeString(string rule)
     {
-        try
+        List<string> tokenizedString = [];
+        StringBuilder backlog = new(); // variable for placeholding
+        var stringChar = 0; // 0 = none, 1 = ', 2 = "
+
+        foreach (var c in rule)
         {
-            if (rule is "") return "True";
-            if (Cache.TryGetValue(rule, out var alreadyCompiledRule)) return alreadyCompiledRule;
-            List<string> tokens = [];
-            var split = rule.Split(' ');
-
-            for (var i = 0; i < split.Length;)
+            if (stringChar is not 0)
             {
-                var key = split[i];
-
-                if (key is "&&" or "AND" or "And" or "&") key = "and";
-                if (key is "||" or "OR" or "Or" or "|") key = "or";
-                if (key is "and" or "or" or "(" or ")" || key.All(c => c is '(') || key.All(c => c is ')'))
+                if ((c is '\'' && stringChar is 1 || c is '"' && stringChar is 2)
+                    && (backlog.Length <= 0 || backlog[^1] is not '\\')) // end string token
                 {
-                    tokens.Add(key);
-                    i++;
+                    stringChar = 0;
+                    backlog.Append(c);
+                    CheckForEndBacklog();
                     continue;
                 }
 
-                if (key.StartsWith("(")) { tokens.Add(string.Join("", key.TakeWhile(c => c is '('))); }
-
-                var end = string.Join("", key.Reverse().TakeWhile(c => c is ')'));
-                key = key.TrimStart('(').TrimEnd(')');
-
-                if (key.Contains('['))
-                {
-                    key = key.Split('[')[0];
-                    if (!methodTokens.TryGetValue(key, out var token))
-                        throw new ArgumentException($"Unknown Method Token: [{key}]");
-                    var listVer = split.ToList();
-                    var lastClosing = listVer.FindIndex(i, s => s.EndsWith("]"));
-
-                    var raw = string.Join(" ", listVer.GetRange(i, lastClosing - i + 1)).Trim();
-                    var start = raw.IndexOf('[') + 1;
-                    raw = string.Join("", raw.ToList().GetRange(start, raw.LastIndexOf(']') - start));
-                    tokens.Add(raw == "" ? $"{token}({string.Join(", ", DefaultParams)})"
-                        : $"{token}({string.Join(", ", DefaultParams)}, {raw})");
-
-                    i += lastClosing - i + 1;
-                }
-                else
-                {
-                    if (!methodTokens.TryGetValue(key, out var token))
-                        throw new ArgumentException($"Unknown Method Token: [{key}]");
-                    tokens.Add($"{token}({string.Join(", ", DefaultParams)})");
-                    i++;
-                }
-
-                if (end.Length == 0) continue;
-                tokens.Add(end);
+                backlog.Append(c);
+                continue;
             }
 
-            return Cache[rule] = string.Join(" ", tokens);
+            switch (c)
+            {
+                case '"' or '\'':
+                    CheckForEndBacklog();
+                    stringChar = c is '"' ? 2 : 1;
+                    backlog.Append(c);
+                    break;
+                case '[' or ']' or '(' or ')' or ' ' or ',':
+                    CheckForEndBacklog();
+
+                    // apparently the fastest char to string https://stackoverflow.com/a/74744433
+                    tokenizedString.Add(new string(c, 1));
+                    break;
+                default: backlog.Append(c); break;
+            }
+        }
+
+        CheckForEndBacklog();
+        return tokenizedString;
+
+        void CheckForEndBacklog()
+        {
+            if (backlog.Length == 0) return;
+            tokenizedString.Add(backlog.ToString());
+            backlog.Clear();
+        }
+    }
+
+    public string CompileRule(string rule, Dictionary<string, string> methodTokens, Action<Exception, string>? onError)
+    {
+        if (rule is "") return "True";
+        if (Cache.TryGetValue(rule, out var alreadyCompiledRule)) return alreadyCompiledRule;
+        List<string> tokens = [];
+        List<string> finalRule = [];
+
+        try
+        {
+            var defParam = string.Join(", ", RuleFactory.DefaultParams);
+            Stack<string> beginTokenStack = new();
+            Stack<string> endTokenStack = new();
+            tokens = TokenizeString(rule);
+
+            for (var i = 0; i < tokens.Count; i++)
+            {
+                var token = tokens[i];
+                switch (token)
+                {
+                    case "(" or ")" or " " or ",": finalRule.Add(token); break;
+                    case "&&" or "AND" or "And" or "&" or "and": finalRule.Add("and"); break;
+                    case "||" or "OR" or "Or" or "|" or "or": finalRule.Add("or"); break;
+                    case "[":
+                    {
+                        finalRule.Add(beginTokenStack.Count != 0 ? "(" : token);
+                        if (beginTokenStack.Count != 0)
+                        {
+                            finalRule.AddRange([defParam, ", "]);
+                            endTokenStack.Push(beginTokenStack.Pop());
+                        }
+                        else endTokenStack.Push("");
+                        break;
+                    }
+                    case "]":
+                    {
+                        finalRule.Add(endTokenStack.Count != 0 && endTokenStack.Peek() is not "" ? ")" : token);
+                        if (endTokenStack.Count != 0) endTokenStack.Pop();
+                        break;
+                    }
+                    default:
+                        if (methodTokens.TryGetValue(token, out var method) && beginTokenStack.Count == 0
+                                                                            && endTokenStack.Count == 0)
+                        {
+                            finalRule.Add(method);
+                            if (i != tokens.Count - 1 && tokens[i + 1] is "[") beginTokenStack.Push(method);
+                            else finalRule.AddRange(["(", defParam, ")"]);
+                        }
+                        else finalRule.Add(token);
+                        break;
+                }
+            }
+
+            var output = Cache[rule] = string.Join("", finalRule);
+            return output;
         }
         catch (Exception e)
         {
-            onError?.Invoke(e, $"Error with logic: [{rule}]");
-            return "True";
+            onError?.Invoke(
+                e,
+                $"Error with logic: [{rule}]\nTokens: [{string.Join(", ", tokens)}]\nFinal: [{string.Join("", finalRule)}]"
+            );
         }
+        return "True";
     }
 }

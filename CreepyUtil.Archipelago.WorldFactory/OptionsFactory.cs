@@ -44,11 +44,8 @@ public class OptionsFactory(WorldFactory worldFactory)
         );
 
         if (category is "") return this;
-        if (!OptionsGroups.TryGetValue(category, out var cats))
-        {
-            OptionsGroups[category] = cats = [];
-        }
-        
+        if (!OptionsGroups.TryGetValue(category, out var cats)) { OptionsGroups[category] = cats = []; }
+
         cats.Add(optionName.Replace(" ", ""));
         return this;
     }
@@ -71,13 +68,11 @@ public class OptionsFactory(WorldFactory worldFactory)
         return this;
     }
 
-    public void GenerateOptionFile(
-        string fileOutput = "Options.py", string imports = """
-                                                           from dataclasses import dataclass
-                                                           from Options import *
-                                                           from .Locations import *
-                                                           """
-    )
+    public void GenerateOptionFile(string fileOutput = "Options.py", string imports = """
+        from dataclasses import dataclass
+        from Options import *
+        from .Locations import *
+        """)
     {
         // if (OptionsGroups.Any())
         // {
@@ -87,13 +82,20 @@ public class OptionsFactory(WorldFactory worldFactory)
 
         foreach (var option in OptionNames.Keys)
         {
-            optionsMatch.AddCase(option.FormatStringForOptionsVar().Surround('"'), $"return self.{option.FormatStringForOptionsVar()}");
+            optionsMatch.AddCase(
+                option.FormatStringForOptionsVar().Surround('"'), $"return self.{option.FormatStringForOptionsVar()}"
+            );
         }
 
-        OptionClass.AddMethod(new MethodFactory("get_options_map")
-                             .AddParams("self", "option")
-           .AddCode(optionsMatch));
-        
+        if (OptionNames.Count != 0)
+        {
+            OptionClass.AddMethod(
+                new MethodFactory("get_options_map")
+                   .AddParams("self", "option")
+                   .AddCode(optionsMatch)
+            );
+        }
+
         var optionsPy = new PythonFactory()
                        .AddObject(new Comment($"File is Auto-generated, see: [{OptionsGeneratorLink}]"))
                        .AddImports(imports)
@@ -118,7 +120,11 @@ public class OptionSet(string[] def, string[] collection) : IOptionType
     public string Parameter() => "OptionSet";
 
     public IPythonVariable[] GetData()
-        => [new Variable("valid_keys", $"frozenset([{string.Join(", ", collection)}])"), new Variable("default", $"frozenset([{string.Join(", ", def)}])")];
+        =>
+        [
+            new Variable("valid_keys", $"frozenset([{string.Join(", ", collection)}])"),
+            new Variable("default", $"frozenset([{string.Join(", ", def)}])")
+        ];
 }
 
 public readonly struct Range(int def, int start, int end) : IOptionType
@@ -129,7 +135,8 @@ public readonly struct Range(int def, int start, int end) : IOptionType
 
     public IPythonVariable[] GetData() =>
     [
-        new Variable("range_start", $"{start}"), new Variable("range_end", $"{end}"), new Variable("default", $"{def}")
+        new Variable("range_start", $"{start}"), new Variable("range_end", $"{end}"),
+        new Variable("default", $"{def}")
     ];
 }
 

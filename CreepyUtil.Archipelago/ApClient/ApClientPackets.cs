@@ -17,11 +17,19 @@ public partial class ApClient
     public event Action<JoinPrintJsonPacket>? OnJoinLogPacketReceived;
     public event Action<LeavePrintJsonPacket>? OnLeaveLogPacketReceived;
     public event Action<CommandResultPrintJsonPacket>? OnCommandResult;
+    public event Action<LocationChecksPacket>? OnLocationsChecked;
+    public event Action<RoomUpdatePacket>? OnRoomUpdatePacketReceived;
+    public event Action<RoomInfoPacket>? OnRoomInfoPacketReceived;
+    public event Action<StatusUpdatePacket>? OnStatusUpdatePacketReceived;
 
     private void OnPacketReceived(ArchipelagoPacketBase packet)
     {
         switch (packet)
         {
+            case StatusUpdatePacket statusUpdatePacket: OnStatusUpdatePacketReceived?.Invoke(statusUpdatePacket); break;
+            case RoomInfoPacket roomInfoPacket: OnRoomInfoPacketReceived?.Invoke(roomInfoPacket); break;
+            case RoomUpdatePacket roomUpdatePacket: OnRoomUpdatePacketReceived?.Invoke(roomUpdatePacket); break;
+            case LocationChecksPacket locationChecksPacket: OnLocationsChecked?.Invoke(locationChecksPacket); break;
             case CommandResultPrintJsonPacket commandResultPacket: OnCommandResult?.Invoke(commandResultPacket); break;
             case JoinPrintJsonPacket joinPacket: OnJoinLogPacketReceived?.Invoke(joinPacket); break;
             case LeavePrintJsonPacket leavePacket: OnLeaveLogPacketReceived?.Invoke(leavePacket); break;
