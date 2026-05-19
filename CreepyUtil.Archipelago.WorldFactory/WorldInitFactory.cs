@@ -48,12 +48,17 @@ public class WorldInitFactory(WorldFactory worldFactory,
 
     private WorldFactory WorldFactory = worldFactory;
 
-    private PythonFactory WorldFile = new PythonFactory().AddImport("from worlds.AutoWorld import World")
+    private PythonFactory WorldFile = new PythonFactory().AddImport("from worlds.AutoWorld import World, WebWorld")
                                                          .AddImports(imports);
 
     private PythonClassFactory WorldClass =
         new PythonClassFactory(worldFactory.GameName.Replace(" ", ""))
            .AddComment(worldFactory.GameName).AddParameter("World")
+           .AddClass(
+                new PythonClassFactory($"{worldFactory.GameName.Replace(" ", "")}Web")
+                   .AddParameter("WebWorld")
+                   .AddVariable(new Variable("tutorials", "[]"))
+            )
            .AddVariable(new Variable("game", worldFactory.GameName.Surround('"')))
            .AddVariable(
                 new Variable(
