@@ -20,7 +20,7 @@ public static class Helper
         return false;
     }
 
-    public static int SortNumber(this HintStatus status)
+    internal static int SortNumber(this HintStatus status)
     {
         return status switch
         {
@@ -32,7 +32,7 @@ public static class Helper
         };
     }
 
-    public static int SortNumber(this ItemFlags item)
+    internal static int SortNumber(this ItemFlags item)
     {
         if (item.HasFlag(ItemFlags.Advancement)) return 0;
         if (item.HasFlag(ItemFlags.Trap)) return 10;

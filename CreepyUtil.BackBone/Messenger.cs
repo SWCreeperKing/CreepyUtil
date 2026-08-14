@@ -15,7 +15,7 @@ public abstract class Messenger<TMessageType>
     public bool ScrollToBottom = true;
     public bool ShowInput = true;
     public bool ToRefreshColors = false;
-    private LimitedQueue<TMessageType> Scrollback = new(-1);
+    private LimitedCollection<TMessageType> Scrollback = new(-1);
     private string Input = "";
     private bool ToScroll;
 

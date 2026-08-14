@@ -21,6 +21,7 @@ public partial class ApClient
     public event Action<RoomUpdatePacket>? OnRoomUpdatePacketReceived;
     public event Action<RoomInfoPacket>? OnRoomInfoPacketReceived;
     public event Action<StatusUpdatePacket>? OnStatusUpdatePacketReceived;
+    public event Action<ArchipelagoPacketBase>? OnUnhandledPacketReceived; 
 
     private void OnPacketReceived(ArchipelagoPacketBase packet)
     {
@@ -61,8 +62,8 @@ public partial class ApClient
                     if (source == PlayerName && ExcludeBouncedPacketsFromSelf) return;
                     var trap = (string)bouncedPacket.Data["trap_name"]!;
 
-                    if (TrapLink.ContainsKey(trap)) { TrapLink[trap](source); }
-                    else { OnUnregisteredTrapLinkReceived?.Invoke(source, trap); }
+                    if (TrapLink.ContainsKey(trap)) TrapLink[trap](source);
+                    else OnUnregisteredTrapLinkReceived?.Invoke(source, trap);
                 }
 
                 if (bouncedPacket.Tags.Contains("RingLink"))
@@ -76,6 +77,9 @@ public partial class ApClient
 
                 break;
             case PrintJsonPacket printPacket: OnPrintJsonPacketReceived?.Invoke(printPacket); break;
+            default:
+                OnUnhandledPacketReceived?.Invoke(packet);
+                break;
         }
     }
 }

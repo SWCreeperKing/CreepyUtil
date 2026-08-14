@@ -4,24 +4,28 @@ using Archipelago.MultiClient.Net.DataPackage;
 using Archipelago.MultiClient.Net.Enums;
 using Archipelago.MultiClient.Net.Helpers;
 using Archipelago.MultiClient.Net.Models;
-using Archipelago.MultiClient.Net.Packets;
 using CreepyUtil.Archipelago.Commands;
 
 namespace CreepyUtil.Archipelago.ApClient;
 
-public partial class ApClient
+public partial class ApClient : IDisposable
 {
     public bool IsConnected { get; private set; } = false;
     public int PlayerSlot { get; private set; }
     public string PlayerName { get; private set; }
+    public string PlayerGame { get; private set; }
     public string[] PlayerNames { get; private set; }
     public string[] PlayerGames { get; private set; }
+    public ItemHandler ItemHandler { get; private set; }
     public ArchipelagoClientState[] PlayerStates { get; private set; }
     public IReadOnlyDictionary<string, object> SlotData { get; private set; } = null!;
     public List<string> MissingLocations { get; private set; } = [];
     public TwoWayLookup<long, string> Locations { get; private set; }
     public TwoWayLookup<long, string> Items { get; private set; }
     public TagManager Tags { get; private set; }
+
+    public ReadOnlyCollection<long> MissingRawLocations
+        => IsConnected ? Session!.Locations.AllMissingLocations : new ReadOnlyCollection<long>([]);
 
     public TimeSpan ServerTimeout
     {
@@ -51,14 +55,13 @@ public partial class ApClient
     public event Action<ReadOnlyCollection<long>>? CheckedLocationsUpdated;
     public event ArchipelagoSocketHelperDelagates.ErrorReceivedHandler? OnConnectionErrorReceived;
     public event Action<Exception>? OnErrorReceived;
-    public event Action<Hint[]>? HintsTrackedEvent; 
+    public event Action<Hint[]>? HintsTrackedEvent;
+    public event Action<ItemHandler>? ItemHandlerInitialized;
 
     public ApClient(TimeSpan? timeout = null) => ServerTimeout = timeout ?? new TimeSpan(0, 0, 10);
 
-    public string[]? TryConnect(
-        LoginInfo info, string gameName, ItemsHandlingFlags flags,
-        Version? version = null, ArchipelagoTag[]? tags = null, bool requestSlotData = true
-    )
+    public string[]? TryConnect(LoginInfo info, string gameName, ItemsHandlingFlags flags,
+        Version? version = null, ArchipelagoTag[]? tags = null, bool requestSlotData = true)
     {
         Info = info;
         try
@@ -69,7 +72,7 @@ public partial class ApClient
             (Socket = Session.Socket).ErrorReceived += (e, s) => OnConnectionErrorReceived?.Invoke(e, s);
 
             Tags = new TagManager(this, Session!, tags!);
-            
+
             var result = Session.TryConnectAndLogin(
                 gameName, Info.Slot, flags, version,
                 Tags.GetTagsAsStrings(), null, Info.Password,
@@ -80,23 +83,23 @@ public partial class ApClient
             PlayerSlot = Session.Players.ActivePlayer.Slot;
             PlayerSlotArr = [PlayerSlot];
             PlayerName = Session.Players.ActivePlayer.Name;
+            PlayerGame = Session.Players.ActivePlayer.Game;
             PlayerNames = Session.Players.AllPlayers.Select(player => player.Name!).ToArray();
             PlayerGames = Session.Players.AllPlayers.Select(player => player.Game).ToArray();
 
-            // ItemsReceivedCounter = GetFromStorage("items_received_counter", def: 0);
-            // ItemsReceivedTracker = 0;
-            ItemsReceivedCounter = 0;
-
-            Session.DataStorage.TrackHints(hints
-                    =>
+            Session.DataStorage.TrackHints(hints =>
                 {
+                    Hints = hints;
                     HintsTrackedEvent?.Invoke(hints);
                 }
             );
 
+            try { Hints = Session.Hints.GetHints(); }
+            catch { Hints = []; }
+
             CommandHandler = new ApCommandHandler(this);
             Session.Socket.PacketReceived += OnPacketReceived;
-            
+
             SetupDeathLink();
 
             Session.Locations.CheckedLocationsUpdated += locations => CheckedLocationsUpdated?.Invoke(locations);
@@ -107,7 +110,7 @@ public partial class ApClient
                 slotDataTask.ContinueWith(slotData => SlotData = slotData.Result);
                 slotDataTask.Wait();
             }
-
+            
             GetLookups(PlayerGames[PlayerSlot], out var locations, out var items);
             Locations = locations;
             Items = items;
@@ -116,6 +119,9 @@ public partial class ApClient
 
             IsConnected = true;
             OnConnectionEvent?.Invoke(this);
+
+            ItemHandler = new ItemHandler(Session!.Items);
+            ItemHandlerInitialized?.Invoke(ItemHandler);
             return null;
         }
         catch (Exception e) { return [e.Message, e.StackTrace!]; }
@@ -130,9 +136,12 @@ public partial class ApClient
         items = lookup.Items;
     }
 
-    /// <summary>
-    /// Update connection status
-    /// </summary>
+    public void UpdateItemHandler()
+    {
+        if (!IsConnected) return;
+        ItemHandler.Update();
+    }
+
     public void UpdateConnection()
     {
         if (!IsConnected || Session is null || Session.Socket.Connected || Session.Socket is null) return;
@@ -146,4 +155,6 @@ public partial class ApClient
         Session!.Socket.DisconnectAsync();
         Session = null;
     }
+
+    public void Dispose() => TryDisconnect();
 }

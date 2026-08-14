@@ -5,7 +5,6 @@ namespace CreepyUtil.DiscordRpc;
 public class DiscordIntegration
 {
     public static DiscordRpcClient Discord;
-    public static bool DiscordAlive;
     public static DateTime? Now = null;
     public static Func<string>? Details;
     public static Func<string>? State;
@@ -15,13 +14,12 @@ public class DiscordIntegration
     public static Func<string>? SmallText;
     public static Action<string>? LogOut;
     
-    public static void CheckDiscord(string appId, bool retry = true)
+    public static void InitDiscord(string appId, bool retry = true)
     {
         if (appId == string.Empty) return;
 
         Now ??= DateTime.UtcNow;
         
-        DiscordAlive = true;
         try
         {
             Discord.UpdateStartTime(Now.Value);
@@ -51,15 +49,14 @@ public class DiscordIntegration
             Discord.SetPresence(rp);
             UpdateActivity();
         }
-        catch
+        catch (Exception e)
         {
-            DiscordAlive = false;
-            LogOut?.Invoke("F");
+            LogOut?.Invoke($"F {e}");
 
             if (retry) // retry if fluke 
             {
                 LogOut?.Invoke("retrying");
-                CheckDiscord(appId, false);
+                InitDiscord(appId, false);
             } else LogOut?.Invoke("FFFFFFFFF");
         }
     }
@@ -68,22 +65,19 @@ public class DiscordIntegration
     {
         try
         {
-            if (!DiscordAlive) return;
+            Now ??= DateTime.UtcNow;
             if (Details is not null) Discord.UpdateDetails(Details());
             if (State is not null) Discord.UpdateState(State());
             if (LargeImage is not null && LargeText is not null) Discord.UpdateLargeAsset(LargeImage(), LargeText());
             if (SmallImage is not null && SmallText is not null) Discord.UpdateSmallAsset(SmallImage(), SmallText());
+            Discord.UpdateStartTime(Now.Value);
             Discord.Invoke();
         }
         catch (Exception e)
         {
-            DiscordAlive = false;
             LogOut?.Invoke($"Error: {e.Message}\n{e.StackTrace}");
         }
     }
-
-    public static void Dispose()
-    {
-        Discord.Dispose();
-    }
+    
+    public static void Dispose() => Discord.Dispose();
 }

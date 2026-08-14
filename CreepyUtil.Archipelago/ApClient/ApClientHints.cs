@@ -6,6 +6,8 @@ namespace CreepyUtil.Archipelago.ApClient;
 
 public partial class ApClient
 {
+    public Hint[] Hints;
+    
     public void UpdateHint(int slot, long location, HintStatus priority)
     {
         Session?.Socket.SendPacketAsync(new UpdateHintPacket

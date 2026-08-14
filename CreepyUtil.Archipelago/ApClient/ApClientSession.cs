@@ -10,13 +10,10 @@ public partial class ApClient
 {
     public PlayerInfo[] AllPlayers => Session?.Players.AllPlayers.ToArray()!;
     public IRoomStateHelper RoomState => Session?.RoomState!;
-
-    public bool HasPlayerListSetup = false;
+    public bool HasPlayerListSetup;
 
     private IArchipelagoSocketHelper? Socket;
     private ArchipelagoSession? Session;
-    private int ItemsReceivedCounter;
-    private int ItemsReceivedTracker;
 
     public string? Seed => Session?.RoomState.Seed;
     public int LocationCount => (int)Session?.Locations.AllLocations.Count!;
@@ -25,22 +22,6 @@ public partial class ApClient
 
     private Dictionary<string, Dictionary<long, string>> _ItemIdToName = [];
     private Dictionary<string, Dictionary<long, string>> _LocationIdToName = [];
-
-    public ItemInfo[] GetOutstandingItems()
-    {
-        if (ItemsReceivedCounter >= Session!.Items.AllItemsReceived.Count) return [];
-        var arr = Session!.Items.AllItemsReceived.Skip(ItemsReceivedCounter).ToArray();
-        ItemsReceivedCounter += arr.Length;
-
-        // if (newOnly)
-        // {
-        //     var delta = ItemsReceivedCounter - ItemsReceivedTracker;
-        //     if (delta < 0) return arr;
-        //     
-        // }
-
-        return arr;
-    }
 
     public bool SendLocation(string id)
     {
@@ -155,7 +136,7 @@ public partial class ApClient
         return itemName;
     }
 
-    public string LocationIdToLocationName(long id, int playerSlot)
+    public string? LocationIdToLocationName(long id, int playerSlot)
     {
         var game = PlayerGames[playerSlot];
         if (!_LocationIdToName.TryGetValue(game, out var dict))
@@ -165,9 +146,9 @@ public partial class ApClient
 
         if (!dict.TryGetValue(id, out var location))
         {
-            location = _LocationIdToName[game][id] = Session!.Locations.GetLocationNameFromId(
-                id, PlayerGames[playerSlot]
-            );
+            var loc = Session!.Locations.GetLocationNameFromId(id, PlayerGames[playerSlot]);
+            if (loc is null) return null;
+            location = _LocationIdToName[game][id] = loc;
         }
 
         return location;
