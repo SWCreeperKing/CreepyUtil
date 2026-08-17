@@ -106,13 +106,14 @@ public class WorldInitFactory(WorldFactory worldFactory,
 
     public WorldInitFactory UseGenerateEarly(Action<MethodFactory>? action = null, bool createOptionsIsElse = false)
     {
+        var wasNull = GenerateEarly is null;
         GenerateEarly ??= new MethodFactory("generate_early")
                          .AddParam("self")
                          .AddCode("options = self.options");
 
-        if (!createOptionsIsElse) GenerateEarly.AddCode("check_options(self)");
+        if (wasNull && !createOptionsIsElse) GenerateEarly.AddCode("check_options(self)");
         action?.Invoke(GenerateEarly);
-        if (createOptionsIsElse) GenerateEarly.AddCode("else: check_options(self)");
+        if (wasNull && createOptionsIsElse) GenerateEarly.AddCode("else: check_options(self)");
         return this;
     }
 
