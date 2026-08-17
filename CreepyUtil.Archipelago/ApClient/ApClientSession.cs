@@ -2,7 +2,6 @@
 using Archipelago.MultiClient.Net.Enums;
 using Archipelago.MultiClient.Net.Helpers;
 using Archipelago.MultiClient.Net.Models;
-using Newtonsoft.Json;
 
 namespace CreepyUtil.Archipelago.ApClient;
 
@@ -155,20 +154,4 @@ public partial class ApClient
     }
 
     public string? GetAlias(int slot) => Session?.Players.GetPlayerAliasAndName(slot);
-
-    public T? GetFromStorage<T>(string key, Scope scope = Scope.Slot, T? def = default)
-    {
-        T? data;
-        try { data = JsonConvert.DeserializeObject<T>(Session!.DataStorage[scope, key].To<string>())!; }
-        catch
-        {
-            //ignore
-            data = def;
-        }
-
-        return data;
-    }
-
-    public void SendToStorage<T>(string key, T data, Scope scope = Scope.Slot)
-        => Session!.DataStorage[scope, key] = JsonConvert.SerializeObject(data);
 }

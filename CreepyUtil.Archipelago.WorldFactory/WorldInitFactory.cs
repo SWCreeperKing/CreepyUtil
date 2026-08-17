@@ -108,10 +108,11 @@ public class WorldInitFactory(WorldFactory worldFactory,
     {
         GenerateEarly ??= new MethodFactory("generate_early")
                          .AddParam("self")
-                         .AddCode($"{(createOptionsIsElse ? "else: " : "")}check_options(self)")
                          .AddCode("options = self.options");
 
+        if (!createOptionsIsElse) GenerateEarly.AddCode("check_options(self)");
         action?.Invoke(GenerateEarly);
+        if (createOptionsIsElse) GenerateEarly.AddCode("else: check_options(self)");
         return this;
     }
 
@@ -147,9 +148,10 @@ public class WorldInitFactory(WorldFactory worldFactory,
 
         utBlock?.Invoke(ut);
 
-            UseGenerateEarly(factory => factory.AddCode("if hasattr(self.multiworld, \"re_gen_passthrough\"):")
-                                               .AddCode(ut.GetText(1)), overrideCreateOptions
-            );
+        UseGenerateEarly(
+            factory => factory.AddCode("if hasattr(self.multiworld, \"re_gen_passthrough\"):")
+                              .AddCode(ut.GetText(1)), overrideCreateOptions
+        );
         return this;
     }
 
