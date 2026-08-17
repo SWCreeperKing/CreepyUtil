@@ -104,11 +104,11 @@ public class WorldInitFactory(WorldFactory worldFactory,
         return this;
     }
 
-    public WorldInitFactory UseGenerateEarly(Action<MethodFactory>? action = null)
+    public WorldInitFactory UseGenerateEarly(Action<MethodFactory>? action = null, bool createOptionsIsElse = false)
     {
         GenerateEarly ??= new MethodFactory("generate_early")
                          .AddParam("self")
-                         .AddCode("check_options(self)")
+                         .AddCode($"{(createOptionsIsElse ? "else: " : "")}check_options(self)")
                          .AddCode("options = self.options");
 
         action?.Invoke(GenerateEarly);
@@ -123,7 +123,7 @@ public class WorldInitFactory(WorldFactory worldFactory,
     }
 
     public WorldInitFactory AddUseUniversalTrackerPassthrough(Action<CodeBlockFactory>? utBlock = null,
-        bool addOptionsFromSlotData = true, bool yamlNeeded = true)
+        bool addOptionsFromSlotData = true, bool yamlNeeded = true, bool overrideCreateOptions = true)
     {
         var ut = new CodeBlockFactory()
                 .AddCode($"if {WorldFactory.GameName.Surround('"')} not in self.multiworld.re_gen_passthrough: return")
@@ -147,21 +147,9 @@ public class WorldInitFactory(WorldFactory worldFactory,
 
         utBlock?.Invoke(ut);
 
-        if (GenerateEarly is null)
-        {
-            GenerateEarly ??= new MethodFactory("generate_early")
-                             .AddParam("self")
-                             .AddCode("options = self.options")
-                             .AddCode("if hasattr(self.multiworld, \"re_gen_passthrough\"):")
-                             .AddCode(ut.GetText(1))
-                             .AddCode("check_options(self)");
-        }
-        else
-        {
             UseGenerateEarly(factory => factory.AddCode("if hasattr(self.multiworld, \"re_gen_passthrough\"):")
-                                               .AddCode(ut.GetText(1))
+                                               .AddCode(ut.GetText(1)), overrideCreateOptions
             );
-        }
         return this;
     }
 

@@ -142,7 +142,7 @@ public class PythonClassFactory(string className) : IPythonObject
         {
             var commentIndent = "\t".Repeat(indentLevel + 1);
             sb.Append(commentIndent).Append("\"\"\"");
-            foreach (var line in Comment) { sb.Append('\n').Append(commentIndent).Append(line); }
+            foreach (var line in Comment) sb.Append('\n').Append(commentIndent).Append(line);
 
             sb.Append('\n').Append(commentIndent).Append("\"\"\"\n");
         }
@@ -155,16 +155,16 @@ public class PythonClassFactory(string className) : IPythonObject
 
         if (Classes.Count != 0)
         {
-            foreach (var pyClass in Classes) { sb.Append(pyClass.GetText(indentLevel + 1)).Append("\n\n"); }
+            foreach (var pyClass in Classes) sb.Append(pyClass.GetText(indentLevel + 1)).Append("\n\n");
         }
 
         if (Variables.Count != 0)
         {
-            foreach (var variable in Variables) { sb.Append(variable.GetVariable(1)).Append('\n'); }
-            if (Methods.Count != 0) { sb.Append('\n'); }
+            foreach (var variable in Variables) sb.Append(variable.GetVariable(indentLevel + 1)).Append('\n');
+            if (Methods.Count != 0) sb.Append('\n');
         }
 
-        sb.Append(string.Join("\n\n", Methods.Select(m => m.GetMethod(1))));
+        sb.Append(string.Join("\n\n", Methods.Select(m => m.GetMethod(indentLevel + 1))));
 
         return sb.ToString();
     }

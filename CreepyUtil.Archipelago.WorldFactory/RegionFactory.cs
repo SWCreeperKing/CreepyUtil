@@ -132,27 +132,27 @@ public class RegionFactory(WorldFactory worldFactory)
 
     public RegionFactory AddLocationsFromList(string list, string getLocation = "location[0]",
         string getRegion = "location[1]",
-        string condition = "")
+        string condition = "", bool isCrucial = false)
     {
         return AddIf(
             condition, new ForLoopFactory("location", list)
                .AddCode(
                     new IfFactory($"{getRegion} in region_map")
-                       .AddCode($"make_location(world, {getLocation}, {getRegion}, region_map, rule_map)")
+                       .AddCode($"make_location(world, {getLocation}, {getRegion}, region_map, rule_map, {isCrucial})")
                 )
         );
     }
 
     public RegionFactory AddEventLocationsFromList(string list, string getEventLocation = "f\"Event: {location[0]}\"",
         string item = "Event Item",
-        string getLocation = "location[0]", string getRegion = "location[1]", string condition = "")
+        string getLocation = "location[0]", string getRegion = "location[1]", string condition = "", bool isCrucial = false)
     {
         return AddIf(
             condition, new ForLoopFactory("location", list)
                .AddCode(
                     new IfFactory($"{getRegion} in region_map")
                        .AddCode(
-                            $"make_event_location(world, {getEventLocation}, {getLocation}, {item}, None, {getRegion}, region_map, rule_map)"
+                            $"make_event_location(world, {getEventLocation}, {getLocation}, {item}, None, {getRegion}, region_map, rule_map, {isCrucial})"
                         )
                 )
         );
@@ -234,10 +234,10 @@ public class RegionFactory(WorldFactory worldFactory)
                  )
                 .AddObject(
                      new MethodFactory("make_location")
-                        .AddParams("world", "location_name", "region_name", "region_map", "rule_map")
+                        .AddParams("world", "location_name", "region_name", "region_map", "rule_map", "is_location_crucial")
                         .AddCode(
                              """
-                             loc = make_location_adv(world, location_name, location_name, world.location_name_to_id[location_name], region_name, region_map, rule_map)
+                             loc = make_location_adv(world, location_name, location_name, world.location_name_to_id[location_name], region_name, region_map, rule_map, is_location_crucial)
                              if loc is not None: world.location_count += 1
                              return loc
                              """
@@ -246,11 +246,11 @@ public class RegionFactory(WorldFactory worldFactory)
                 .AddObject(
                      new MethodFactory("make_event_location")
                         .AddParams(
-                             "world", "location_name_a", "location_name_b", "item_name", "id", "region_name", "region_map", "rule_map"
+                             "world", "location_name_a", "location_name_b", "item_name", "id", "region_name", "region_map", "rule_map", "is_location_crucial"
                          )
                         .AddCode(
                              """
-                             location = make_location_adv(world, location_name_a, location_name_b, id, region_name, region_map, rule_map)
+                             location = make_location_adv(world, location_name_a, location_name_b, id, region_name, region_map, rule_map, is_location_crucial)
                              if location is None: return None
                              return location.place_locked_item(Item(item_name, ItemClassification.progression, None, world.player))
                              """
