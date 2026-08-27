@@ -4,8 +4,8 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <LangVersion>12</LangVersion>
-<!--        <TargetFrameworks>net6.0;net472;netstandard2.0</TargetFrameworks>-->
-        <TargetFrameworks>net6.0;net472</TargetFrameworks>
+        <TargetFrameworks>net6.0;net472;netstandard2.0</TargetFrameworks>
+<!--        <TargetFrameworks>net6.0;net472</TargetFrameworks>-->
 
         <IlRepackCommand>ilrepack /out:BundledApClient.dll CreepyUtil.Archipelago.dll Newtonsoft.Json.dll Archipelago.MultiClient.Net.dll</IlRepackCommand>
 

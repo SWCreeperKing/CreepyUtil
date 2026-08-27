@@ -7,45 +7,81 @@ namespace CreepyUtil.Archipelago.ApClient;
 
 public partial class ApClient
 {
-    private Dictionary<string, DataStorageHelper.DataStorageUpdatedHandler> CoreDsListeners = [];
-    private Dictionary<string, HashSet<DataStorageHelper.DataStorageUpdatedHandler>> DsListeners = [];
+    public event Action<Exception>? OnDataStorageListenerError;
+    private Dictionary<int, DataStorageHelper.DataStorageUpdatedHandler> CoreDsListeners = [];
+    private Dictionary<int, HashSet<DataStorageHelper.DataStorageUpdatedHandler>> DsListeners = [];
 
-    public void AddDataStorageListener(string key, DataStorageHelper.DataStorageUpdatedHandler action)
+    public void AddDataStorageListener(string key, DataStorageHelper.DataStorageUpdatedHandler action,
+        Scope scope = Scope.Global)
     {
-        if (DsListeners.ContainsKey(key)) DsListeners[key].Add(action);
-        else DsListeners[key] = [action];
+        try
+        {
+            var id = (key, scope).GetHashCode();
+            if (DsListeners.ContainsKey(id)) DsListeners[id].Add(action);
+            else DsListeners[id] = [action];
 
-        if (CoreDsListeners.ContainsKey(key)) return;
-        DataStorageHelper.DataStorageUpdatedHandler listener = (o, n, d) => OnOnValueChanged(key, o, n, d);
-        Session!.DataStorage[key].OnValueChanged += listener;
-        CoreDsListeners[key] = listener;
+            if (CoreDsListeners.ContainsKey(id)) return;
+            DataStorageHelper.DataStorageUpdatedHandler listener = (o, n, d) => OnValueChanged(id, o, n, d);
+            Session!.DataStorage[scope, key].OnValueChanged += listener;
+            CoreDsListeners[id] = listener;
+        }
+        catch (Exception e) { OnDataStorageListenerError?.Invoke(e); }
     }
 
-    public void RemoveDataStorageListeners(string key)
+    public void RemoveDataStorageListeners(string key, Scope scope = Scope.Global)
     {
-        DsListeners.Remove(key);
-        if (!CoreDsListeners.TryGetValue(key, out var listener)) return;
-        Session!.DataStorage[key].OnValueChanged -= listener;
-        CoreDsListeners.Remove(key);
+        try
+        {
+            var id = (key, scope).GetHashCode();
+            DsListeners.Remove(id);
+            if (!CoreDsListeners.TryGetValue(id, out var listener)) return;
+            Session!.DataStorage[key].OnValueChanged -= listener;
+            CoreDsListeners.Remove(id);
+        }
+        catch (Exception e) { OnDataStorageListenerError?.Invoke(e); }
     }
 
-    private void OnOnValueChanged(string key, JToken originalValue, JToken newValue,
+    private void OnValueChanged(int id, JToken originalValue, JToken newValue,
         Dictionary<string, JToken> additionalArguments)
     {
-        foreach (var action in DsListeners[key]) action?.Invoke(originalValue, newValue, additionalArguments);
+        if (!DsListeners.TryGetValue(id, out var listener)) return;
+        foreach (var action in listener)
+        {
+            try { action.Invoke(originalValue, newValue, additionalArguments); }
+            catch (Exception e) { OnDataStorageListenerError?.Invoke(e); }
+        }
     }
 
     public T? GetFromStorage<T>(string key, Scope scope = Scope.Slot, T? def = default)
     {
         T? data;
-        try { data = JsonConvert.DeserializeObject<T>(Session!.DataStorage[scope, key].To<string>())!; }
-        catch
+        // try { data = JsonConvert.DeserializeObject<T>(Session!.DataStorage[scope, key].To<string>())!; }
+        try { data = Session!.DataStorage[scope, key].GetAsync().Result.ToObject<T>()!; }
+        catch (ArgumentException) { data = def; }
+        catch (Exception e)
         {
-            //ignore
+            OnDataStorageListenerError?.Invoke(e);
             data = def;
         }
 
         return data;
+    }
+
+    public void GetFromStorageAsync<T>(string key, Action<T?> callBack, Scope scope = Scope.Slot, T? def = default)
+    {
+        Session!.DataStorage[scope, key].GetAsync().ContinueWith(obj =>
+            {
+                T? data;
+                try { data = obj.Result.ToObject<T>()!; }
+                catch (ArgumentException) { data = def; }
+                catch (Exception e)
+                {
+                    OnDataStorageListenerError?.Invoke(e);
+                    data = def;
+                }
+                callBack?.Invoke(data);
+            }
+        );
     }
 
     public void SendToStorage<T>(string key, T data, Scope scope = Scope.Slot)

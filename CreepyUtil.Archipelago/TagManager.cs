@@ -59,7 +59,11 @@ public class TagManager
         else _ = this + DeathLink;
     }
 
-    private void UpdateTags() { Session.ConnectionInfo.UpdateConnectionOptions(GetTagsAsStrings()); }
+    private void UpdateTags()
+    {
+        if (!Client.IsConnected || !Session.Socket.Connected) return;
+        Session.ConnectionInfo.UpdateConnectionOptions(GetTagsAsStrings()); 
+    }
 
     public bool this[ArchipelagoTag tag] => Tags.Contains(tag);
 }
