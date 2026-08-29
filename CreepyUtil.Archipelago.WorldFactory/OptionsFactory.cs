@@ -99,7 +99,7 @@ public class OptionsFactory(WorldFactory worldFactory)
         var optionsPy = new PythonFactory()
                        .AddObject(new Comment($"File is Auto-generated, see: [{OptionsGeneratorLink}]"))
                        .AddImports(imports)
-                       .AddObjects(Options.ToArray())
+                       .AddObjects([.. Options])
                        .AddObject(OptionClass)
                        .AddObject(CheckOptions)
                        .AddObject(
@@ -147,9 +147,7 @@ public readonly struct Choice(int def = 0, params string[] choices) : IOptionTyp
     public string Parameter() => "Choice";
 
     public IPythonVariable[] GetData()
-        => choices.Select((s, i) => new Variable($"option_{s}", $"{i}"))
-                  .Append(new Variable("default", $"{def}"))
-                  .ToArray<IPythonVariable>();
+        => [.. choices.Select((s, i) => new Variable($"option_{s}", $"{i}")), new Variable("default", $"{def}")];
 }
 
 public readonly struct DefaultOnToggle : IOptionType

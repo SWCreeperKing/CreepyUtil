@@ -96,7 +96,7 @@ public class RuleFactory(WorldFactory worldFactory)
         defaultParams.RemoveAll(s => s is "state");
 
         var ruleMap = new MethodFactory("get_rule_map")
-                     .AddParams(defaultParams.ToArray())
+                     .AddParams([.. defaultParams])
                      .AddParams(extraParams)
                      .AddCode("return {");
 
@@ -112,7 +112,7 @@ public class RuleFactory(WorldFactory worldFactory)
                     .AddObject(new Comment($"File is Auto-generated, see: [{LogicGeneratorLink}]"))
                     .AddImports(imports)
                     .AddObject(ruleMap)
-                    .AddObjects(LogicMethods.Values.ToArray<IPythonObject>());
+                    .AddObjects([.. LogicMethods.Values]);
 
         File.WriteAllText($"{WorldFactory.OutputDirectory}{fileOutput}", rulePy.GetText());
     }

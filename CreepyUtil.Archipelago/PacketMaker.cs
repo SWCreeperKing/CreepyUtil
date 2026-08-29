@@ -8,7 +8,7 @@ public static class PacketMaker
 {
     public static BouncePacket CreateDeathLinkPacket(HashSet<string> groups, string playerName, string cause) => new()
     {
-        Tags = groups.Select(g => $"DeathLink{g}").ToList(),
+        Tags = [.. groups.Select(g => $"DeathLink{g}")],
         Data = new Dictionary<string, JToken>
         {
             { "time", DateTime.UtcNow.ToUnixTimeStamp() },

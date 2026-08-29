@@ -79,7 +79,7 @@ public class ApUIClient : ApClient.ApClient
                 }
                 else if (updatePacket.Data[1].Text is " found their " or " sent ")
                 {
-                    OnItemLogPacket(this, updatePacket.Data.Select(mp => new MessagePart(this, IsPlayer, mp)).ToArray());
+                    OnItemLogPacket(this, [.. updatePacket.Data.Select(mp => new MessagePart(this, IsPlayer, mp))]);
                 }
 
                 break;

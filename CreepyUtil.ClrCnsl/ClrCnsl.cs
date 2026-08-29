@@ -411,7 +411,7 @@ public static class ClrCnsl
             return a;
         });
 
-        table.Insert(0, settings.Select(cs => cs.Name).ToArray());
+        table.Insert(0, [.. settings.Select(cs => cs.Name)]);
 
         StringBuilder sb = new();
         sb.Append('+');

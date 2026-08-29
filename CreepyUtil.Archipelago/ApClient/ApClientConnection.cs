@@ -84,8 +84,8 @@ public partial class ApClient : IDisposable
             PlayerSlotArr = [PlayerSlot];
             PlayerName = Session.Players.ActivePlayer.Name;
             PlayerGame = Session.Players.ActivePlayer.Game;
-            PlayerNames = Session.Players.AllPlayers.Select(player => player.Name!).ToArray();
-            PlayerGames = Session.Players.AllPlayers.Select(player => player.Game).ToArray();
+            PlayerNames = [.. Session.Players.AllPlayers.Select(player => player.Name!)];
+            PlayerGames = [.. Session.Players.AllPlayers.Select(player => player.Game)];
 
             Session.DataStorage.TrackHints(hints =>
                 {

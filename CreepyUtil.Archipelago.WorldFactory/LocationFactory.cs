@@ -86,9 +86,9 @@ public class LocationFactory(WorldFactory worldFactory)
             locationPy, (factory, pair) => factory.AddObject(new StringDoubleArray(pair.Key, pair.Value))
         );
 
-        locationPy.AddObjects(OtherVariables.ToArray());
+        locationPy.AddObjects([.. OtherVariables]);
 
-        locationsArray = AllLocations.ToArray();
+        locationsArray = [.. AllLocations];
         locationPy.AddObject(new StringArray("location_dict", LocationVariablesFinalList, stringify: false));
 
         injectCode?.Invoke(locationPy);

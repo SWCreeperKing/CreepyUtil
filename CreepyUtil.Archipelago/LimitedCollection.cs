@@ -71,7 +71,7 @@ public class LimitedCollection<T>(int limit, Func<List<T>, T?>? findToDelete = n
     }
 
     public int Count() => Queue.Count;
-    public T[] GetCollection => Queue.ToArray();
+    public T[] GetCollection => [.. Queue];
 
     public void Clear()
     {

@@ -143,11 +143,11 @@ public class ItemFactory(WorldFactory worldFactory)
                          """
     )
     {
-        itemsArray = AllItems.ToArray();
+        itemsArray = [.. AllItems];
         var itemsPy = new PythonFactory()
                      .AddObject(new Comment($"File is Auto-generated, see: [{ItemGeneratorLink}]"))
                      .AddImports(imports)
-                     .AddObjects(ItemVariables.ToArray())
+                     .AddObjects([.. ItemVariables])
                      .AddObject(new ListedVariableAsMappedVariable<string>("item_table", ItemMap))
                      .AddObject(new Variable("raw_items", "[item for item, classification in item_table.items()]"))
                      .AddObject(CreateItems);

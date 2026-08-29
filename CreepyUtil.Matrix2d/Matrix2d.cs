@@ -39,7 +39,7 @@ public class Matrix2d<T>
         if (inArray.Count != w * h) throw new ArgumentException("width and height of array does not match");
         Size = (w, h);
         TrueSize = inArray.Count;
-        Array = inArray.ToArray();
+        Array = [.. inArray];
     }
 
     public Matrix2d(IReadOnlyCollection<T> inArray, (int w, int h) size) : this(inArray, size.w, size.h) { }
@@ -93,17 +93,18 @@ public class Matrix2d<T>
 
     public Matrix2d<TO> MatrixSelect<TO>(Func<T, TO> select)
     {
-        return new Matrix2d<TO>(Array.Select(select).ToArray(), Size.w, Size.h);
+        return new Matrix2d<TO>([.. Array.Select(select)], Size.w, Size.h);
     }
 
     public Matrix2d<TO> MatrixSelect<TO>(Func<Matrix2d<T>, T, int, TO> select)
     {
-        return new Matrix2d<TO>(Array.Select((t, i) => select(this, t, i)).ToArray(), Size.w, Size.h);
+        return new Matrix2d<TO>([.. Array.Select((t, i) => select(this, t, i))], Size.w, Size.h);
     }
 
     public Matrix2d<TO> MatrixSelect<TO>(Func<Matrix2d<T>, T, Pos.Pos, TO> select)
     {
-        return new Matrix2d<TO>(Array.Select((t, i) => select(this, t, TranslatePosition(i))).ToArray(), Size.w,
+        return new Matrix2d<TO>(
+            [.. Array.Select((t, i) => select(this, t, TranslatePosition(i)))], Size.w,
             Size.h);
     }
 
@@ -143,7 +144,7 @@ public class Matrix2d<T>
             bools.Add(PositionExists(next) && condition(this[next]));
         }
 
-        return bools.ToArray();
+        return [.. bools];
     }
 
     public bool AnyTrueMatchInCircle(Pos.Pos pos, Predicate<T> condition, bool corners = true)
@@ -248,10 +249,10 @@ public class Matrix2d<T>
             posList.Add(new Pos.Pos(x, y));
         }
 
-        return posList.ToArray();
+        return [.. posList];
     }
 
-    public Pos.Pos[] FindAll(T find) { return Array.FindAllIndexesOf(find).Select(i => TranslatePosition(i)).ToArray(); }
+    public Pos.Pos[] FindAll(T find) { return [.. Array.FindAllIndexesOf(find).Select(i => TranslatePosition(i))]; }
 
     public Pos.Pos TranslatePosition(int index) { return new Pos.Pos(index % Size.w, (int)Math.Floor((float)index / Size.w)); }
 
@@ -302,6 +303,6 @@ public static class Ext
 {
     public static int[] FindAllIndexesOf<T>(this IEnumerable<T> arr, T search)
     {
-        return arr.Select((o, i) => Equals(search, o) ? i : -1).Where(i => i != -1).ToArray();
+        return [.. arr.Select((o, i) => Equals(search, o) ? i : -1).Where(i => i != -1)];
     }
 }

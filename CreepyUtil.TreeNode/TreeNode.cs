@@ -17,7 +17,7 @@ public abstract class TreeNode<T>(string id) where T : TreeNode<T>
         {
             t.NodeMap = treeMap;
             if (map[id].Length == 0) continue;
-            t.Children = map[id].Select(k => treeMap[k]).ToHashSet();
+            t.Children = [.. map[id].Select(k => treeMap[k])];
 
             foreach (var treeNode in t.Children) treeNode.Parent = t;
         }

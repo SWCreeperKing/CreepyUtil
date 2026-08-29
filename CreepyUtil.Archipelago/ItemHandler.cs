@@ -33,8 +33,8 @@ public class ItemHandler(IReceivedItemsHelper items)
     public IEnumerable<ItemInfo> GetItemsFrom(int fromIndex) => Items.Skip(fromIndex);
 
     public ItemInfo[] GetStartingItems()
-        => Items.Where(item => item.Player.Slot is 0 && item.LocationName is "Server").ToArray();
+        => [.. Items.Where(item => item.Player.Slot is 0 && item.LocationName is "Server")];
     
     public ItemInfo[] GetCheatedItems()
-        => Items.Where(item => item.LocationName is "Cheat Console").ToArray();
+        => [.. Items.Where(item => item.LocationName is "Cheat Console")];
 }

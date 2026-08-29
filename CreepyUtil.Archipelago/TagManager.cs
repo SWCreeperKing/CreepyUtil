@@ -14,7 +14,7 @@ public class TagManager
         Client = client;
         Session = session;
         if (tags is null || tags.Length == 0) return;
-        Tags = tags.ToHashSet();
+        Tags = [.. tags];
     }
 
     public static TagManager operator +(TagManager manager, ArchipelagoTag tag)
@@ -32,25 +32,29 @@ public class TagManager
         return manager;
     }
 
-    public ArchipelagoTag[] GetTags() => Tags.ToArray();
+    public ArchipelagoTag[] GetTags() => [.. Tags];
 
     public string[] GetTagsAsStrings()
-        => Tags.SelectMany(tag => tag.StringTag(Client.DeathLinkGroups.ToArray())).ToArray();
+        => [.. Tags.SelectMany(tag => tag.StringTag([.. Client.DeathLinkGroups]))];
 
     public void SetTags(params ArchipelagoTag[] tags)
     {
-        Tags = new HashSet<ArchipelagoTag>(tags);
+        Tags = [.. tags];
         UpdateTags();
     }
 
     public void FetchTags()
     {
-        Tags = new HashSet<ArchipelagoTag>(Session.ConnectionInfo.Tags.Select(tag =>
-        {
-            var apTag = tag.ToArchipelagoTag(out var dl);
-            if (dl is not null && apTag is DeathLink) Client.DeathLinkGroups.Add(dl);
-            return apTag;
-        }));
+        Tags =
+        [
+            .. Session.ConnectionInfo.Tags.Select(tag =>
+                {
+                    var apTag = tag.ToArchipelagoTag(out var dl);
+                    if (dl is not null && apTag is DeathLink) Client.DeathLinkGroups.Add(dl);
+                    return apTag;
+                }
+            ),
+        ];
     }
 
     public void ToggleDeathLink()

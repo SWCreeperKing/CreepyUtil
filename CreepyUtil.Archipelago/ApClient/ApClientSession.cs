@@ -44,12 +44,12 @@ public partial class ApClient
     {
         try
         {
-            ids = ids.Where(id => MissingLocations.Contains(id)).ToArray();
+            ids = [.. ids.Where(id => MissingLocations.Contains(id))];
             if (ids.Length == 0) return true;
             return IsConnected && new Task(() =>
                 {
                     if (MissingLocations.Count == 0) return;
-                    Session?.Locations.CompleteLocationChecks(ids.Select(id => Locations[id]).ToArray());
+                    Session?.Locations.CompleteLocationChecks([.. ids.Select(id => Locations[id])]);
                     foreach (var loc in ids)
                     {
                         MissingLocations.Remove(loc);
@@ -87,12 +87,12 @@ public partial class ApClient
 
         var locations = ids.Where(id => Locations.Any(kv => kv.Key == id)).Select(id => Locations[id]).ToArray();
         var items = Session?.Locations.ScoutLocationsAsync(hintCreationPolicy, locations).GetAwaiter().GetResult();
-        return locations.Where(loc => items is not null && items.ContainsKey(loc)).Select(loc => items![loc]).ToArray();
+        return [.. locations.Where(loc => items is not null && items.ContainsKey(loc)).Select(loc => items![loc])];
     }
 
     public void CreateHints(HintStatus status = HintStatus.Unspecified, params string[] locations)
     {
-        Session?.Hints.CreateHints(status, locations.Select(id => Locations[id]).ToArray());
+        Session?.Hints.CreateHints(status, [.. locations.Select(id => Locations[id])]);
     }
 
     public void CreateHints(HintStatus status = HintStatus.Unspecified, params long[] locations)
@@ -104,7 +104,7 @@ public partial class ApClient
     {
         if (HasPlayerListSetup) return;
         HasPlayerListSetup = true;
-        PlayerStates = PlayerNames.Select(_ => ArchipelagoClientState.ClientUnknown).ToArray();
+        PlayerStates = [.. PlayerNames.Select(_ => ArchipelagoClientState.ClientUnknown)];
 
         for (var i = 0; i < PlayerNames.Length; i++)
         {

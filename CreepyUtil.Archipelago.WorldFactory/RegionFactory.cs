@@ -203,9 +203,11 @@ public class RegionFactory(WorldFactory worldFactory)
         {
             createRegions.AddCode(
                 new IfFactory(group.Key).AddCode(
-                    group.Select(kv
-                        => $"region_map[\"{kv.Key}\"] = Region(\"{kv.Key}\", world.player, world.multiworld)"
-                    ).ToArray()
+                    [
+                        .. group.Select(kv
+                            => $"region_map[\"{kv.Key}\"] = Region(\"{kv.Key}\", world.player, world.multiworld)"
+                        ),
+                    ]
                 )
             );
         }

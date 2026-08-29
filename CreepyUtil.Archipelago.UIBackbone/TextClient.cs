@@ -56,8 +56,7 @@ public class ServerMessagePacket(string message) : MessagePacket
 public class HintMessagePacket(ApUIClient client, Func<int, bool> isPlayer, JsonMessagePart[] messageParts)
     : MessagePacket
 {
-    public readonly MessagePart[] MessageParts =
-        messageParts.Select(mp => new MessagePart(client, isPlayer, mp)).ToArray();
+    public readonly MessagePart[] MessageParts = [.. messageParts.Select(mp => new MessagePart(client, isPlayer, mp))];
 
     public readonly int HashCode = string.Join(" ", messageParts.Select(mp => mp.Text)).GetHashCode();
 

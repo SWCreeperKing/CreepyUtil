@@ -44,27 +44,27 @@ public class CsvParser
             cells.Add(current);
         }
 
-        Csv = cells.Select(arr => arr.ToArray()).ToArray();
+        Csv = [.. cells.Select(arr => arr.ToArray())];
     }
 
     public T[] ReadTable<T>(CsvTableRowCreator<T> creator, int start, int length, Action<Exception, int>? onError = null)
-        => Csv
-          .Select(line => line.Skip(start).Take(length).ToArray())
-          .Where(line => line.Length != 0)
-          .Where(creator.IsTableNotEmpty)
-          .Select((line, i) =>
-           {
-               try
-               {
-                   return creator.CreateRowData(line);
-               }
-               catch (Exception e)
-               {
-                   onError?.Invoke(e, i);
-                   return default;
-               }
-           })
-          .Where(line => line is not null && creator.IsValidData(line)).ToArray()!;
+        => [
+            .. Csv
+              .Select(line => line.Skip(start).Take(length).ToArray())
+              .Where(line => line.Length != 0)
+              .Where(creator.IsTableNotEmpty)
+              .Select((line, i) =>
+                   {
+                       try { return creator.CreateRowData(line); }
+                       catch (Exception e)
+                       {
+                           onError?.Invoke(e, i);
+                           return default;
+                       }
+                   }
+               )
+              .Where(line => line is not null && creator.IsValidData(line)),
+        ]!;
 
     public CsvFactory ToFactory(Action<Exception, int>? onError = null) => new(this, onError);
 }

@@ -68,19 +68,21 @@ public static class Helper
 
     public static HashSet<Hint> OrderHints(this IEnumerable<Hint> hints, int playerCount, IEnumerable<int> PlayerSlots)
     {
-        return hints
+        return
+        [
+            .. hints
               .OrderBy(hint => hint.Status.SortNumber())
               .ThenBy(hint => hint.ItemFlags.SortNumber())
-              .ThenBy(hint
-                   => PlayerSlots.Contains(hint.ReceivingPlayer)
-                       ? playerCount + 1
-                       : hint.ReceivingPlayer)
-              .ThenBy(hint
-                   => PlayerSlots.Contains(hint.FindingPlayer)
-                       ? playerCount + 1
-                       : hint.FindingPlayer)
-              .ThenBy(hint => hint.LocationId)
-              .ToHashSet();
+              .ThenBy(hint => PlayerSlots.Contains(hint.ReceivingPlayer)
+                   ? playerCount + 1
+                   : hint.ReceivingPlayer
+               )
+              .ThenBy(hint => PlayerSlots.Contains(hint.FindingPlayer)
+                   ? playerCount + 1
+                   : hint.FindingPlayer
+               )
+              .ThenBy(hint => hint.LocationId),
+        ];
     }
 
     public static T? SafeTo<T>(this DataStorageElement? element, T? def = default)
@@ -95,7 +97,10 @@ public static class Helper
         }
     }
 
-    public static string[] SplitAndTrim(this string text, char delimiter) => text.Split(delimiter).Select(s => s.Trim()).Where(s => s is not "").ToArray();
+    public static string[] SplitAndTrim(this string text, char delimiter) =>
+    [
+        .. text.Split(delimiter).Select(s => s.Trim()).Where(s => s is not ""),
+    ];
     
     public static HashSet<T> ToHashSet<T>(this IEnumerable<T> source, IEqualityComparer<T>? comparer = null)
     {
