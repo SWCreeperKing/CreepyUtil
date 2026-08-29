@@ -21,7 +21,7 @@ public partial class ApClient
     public event Action<RoomUpdatePacket>? OnRoomUpdatePacketReceived;
     public event Action<RoomInfoPacket>? OnRoomInfoPacketReceived;
     public event Action<StatusUpdatePacket>? OnStatusUpdatePacketReceived;
-    public event Action<ArchipelagoPacketBase>? OnUnhandledPacketReceived; 
+    public event Action<ArchipelagoPacketBase>? OnUnhandledPacketReceived;
 
     private void OnPacketReceived(ArchipelagoPacketBase packet)
     {
@@ -77,9 +77,7 @@ public partial class ApClient
 
                 break;
             case PrintJsonPacket printPacket: OnPrintJsonPacketReceived?.Invoke(printPacket); break;
-            default:
-                OnUnhandledPacketReceived?.Invoke(packet);
-                break;
+            default: OnUnhandledPacketReceived?.Invoke(packet); break;
         }
     }
 }

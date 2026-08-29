@@ -19,7 +19,6 @@ public partial class ApClient : IDisposable
     public ItemHandler ItemHandler { get; private set; }
     public ArchipelagoClientState[] PlayerStates { get; private set; }
     public IReadOnlyDictionary<string, object> SlotData { get; private set; } = null!;
-    public List<string> MissingLocations { get; private set; } = [];
     public TwoWayLookup<long, string> Locations { get; private set; }
     public TwoWayLookup<long, string> Items { get; private set; }
     public TagManager Tags { get; private set; }
@@ -110,12 +109,10 @@ public partial class ApClient : IDisposable
                 slotDataTask.ContinueWith(slotData => SlotData = slotData.Result);
                 slotDataTask.Wait();
             }
-            
+
             GetLookups(PlayerGames[PlayerSlot], out var locations, out var items);
             Locations = locations;
             Items = items;
-
-            MissingLocations = Session?.Locations.AllMissingLocations.Select(l => Locations[l]).ToList()!;
 
             IsConnected = true;
             OnConnectionEvent?.Invoke(this);

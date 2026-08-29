@@ -1,4 +1,5 @@
-﻿using Archipelago.MultiClient.Net;
+﻿using System.Collections.ObjectModel;
+using Archipelago.MultiClient.Net;
 using Archipelago.MultiClient.Net.Enums;
 using Archipelago.MultiClient.Net.Helpers;
 using Archipelago.MultiClient.Net.Models;
@@ -19,19 +20,23 @@ public partial class ApClient
     public int LocationsCheckedCount => (int)Session?.Locations.AllLocationsChecked.Count!;
     public string[] LocationsChecked => Session?.Locations.AllLocationsChecked.Select(l => Locations[l]).ToArray()!;
 
+    public ReadOnlyCollection<long> MissingLocations => Session is null || !IsConnected ? new ReadOnlyCollection<long>([])
+        : Session!.Locations.AllMissingLocations;
+
     private Dictionary<string, Dictionary<long, string>> _ItemIdToName = [];
     private Dictionary<string, Dictionary<long, string>> _LocationIdToName = [];
 
+    public bool IsMissingLocation(string loc) => MissingLocations.Contains(Locations[loc]);
+    
     public bool SendLocation(string id)
     {
         try
         {
-            if (!MissingLocations.Contains(id)) return true;
+            if (!IsMissingLocation(id)) return true;
             return IsConnected && new Task(() =>
                 {
                     if (MissingLocations.Count == 0) return;
                     Session?.Locations.CompleteLocationChecks(Locations[id]);
-                    MissingLocations.Remove(id);
                     ItemsSentNotification?.Invoke(id);
                 }
             ).RunWithTimeout(ServerTimeout, OnErrorReceived);
@@ -44,17 +49,13 @@ public partial class ApClient
     {
         try
         {
-            ids = [.. ids.Where(id => MissingLocations.Contains(id))];
+            ids = [.. ids.Where(IsMissingLocation)];
             if (ids.Length == 0) return true;
             return IsConnected && new Task(() =>
                 {
                     if (MissingLocations.Count == 0) return;
                     Session?.Locations.CompleteLocationChecks([.. ids.Select(id => Locations[id])]);
-                    foreach (var loc in ids)
-                    {
-                        MissingLocations.Remove(loc);
-                        ItemsSentNotification?.Invoke(loc);
-                    }
+                    foreach (var loc in ids) ItemsSentNotification?.Invoke(loc);
                 }
             ).RunWithTimeout(ServerTimeout, OnErrorReceived);
         }
