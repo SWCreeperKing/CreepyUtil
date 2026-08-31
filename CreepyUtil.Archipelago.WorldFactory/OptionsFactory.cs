@@ -26,11 +26,11 @@ public class OptionsFactory(WorldFactory worldFactory)
                                             .AddDecorator("@dataclass");
 
     private MethodFactory? CheckOptions = null;
-    public Dictionary<string, string> OptionNames { get; private set; } = [];
+    public Dictionary<string, IOptionType> OptionNames { get; private set; } = [];
 
     public OptionsFactory AddOption(string optionName, string description, IOptionType option, string category = "")
     {
-        OptionNames[optionName] = option.DataType();
+        OptionNames[optionName] = option;
         Options.Add(
             new PythonClassFactory(optionName.FormatStringForOptionsVar(true))
                .AddComment(description)
@@ -116,7 +116,7 @@ public class OptionsFactory(WorldFactory worldFactory)
 
 public class OptionSet(string[] def, string[] collection) : IOptionType
 {
-    public string DataType() => "str";
+    public string DataType(string val) => $"str(sorted({val}))";
     public string Parameter() => "OptionSet";
 
     public IPythonVariable[] GetData()
@@ -129,7 +129,7 @@ public class OptionSet(string[] def, string[] collection) : IOptionType
 
 public readonly struct Range(int def, int start, int end) : IOptionType
 {
-    public string DataType() => "int";
+    public string DataType(string val) => $"int({val})";
 
     public string Parameter() => "Range";
 
@@ -142,7 +142,7 @@ public readonly struct Range(int def, int start, int end) : IOptionType
 
 public readonly struct Choice(int def = 0, params string[] choices) : IOptionType
 {
-    public string DataType() => "int";
+    public string DataType(string val) => $"int({val})";
 
     public string Parameter() => "Choice";
 
@@ -152,7 +152,7 @@ public readonly struct Choice(int def = 0, params string[] choices) : IOptionTyp
 
 public readonly struct DefaultOnToggle : IOptionType
 {
-    public string DataType() => "bool";
+    public string DataType(string val) => $"bool({val})";
 
     public string Parameter() => "DefaultOnToggle";
     public IPythonVariable[] GetData() => [];
@@ -160,7 +160,7 @@ public readonly struct DefaultOnToggle : IOptionType
 
 public readonly struct Toggle : IOptionType
 {
-    public string DataType() => "bool";
+    public string DataType(string val) => $"bool({val})";
 
     public string Parameter() => "Toggle";
     public IPythonVariable[] GetData() => [];
@@ -168,7 +168,7 @@ public readonly struct Toggle : IOptionType
 
 public interface IOptionType
 {
-    public string DataType();
+    public string DataType(string val);
     public string Parameter();
     public IPythonVariable[] GetData();
 }

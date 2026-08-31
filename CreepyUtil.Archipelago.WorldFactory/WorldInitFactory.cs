@@ -192,7 +192,7 @@ public class WorldInitFactory(WorldFactory worldFactory,
             foreach (var option in WorldFactory.GetOptionsFactory().OptionNames)
             {
                 finalData[option.Key.FormatStringForOptionsVar(stringify: true)]
-                    = $"{option.Value}(self.options.{option.Key.FormatStringForOptionsVar()})";
+                    = option.Value.DataType($"self.options.{option.Key.FormatStringForOptionsVar()}");
             }
         }
 
