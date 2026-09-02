@@ -23,6 +23,7 @@ public partial class ApClient
     {
         try
         {
+            if (!IsConnected) return;
             var id = (key, scope).GetHashCode();
             if (!DsListeners.ContainsKey(id)) DsListeners[id] = [];
             if (DsListeners[id].ContainsKey(functionId))
@@ -46,6 +47,7 @@ public partial class ApClient
     {
         try
         {
+            if (!IsConnected) return;
             var id = (key, scope).GetHashCode();
             if (!DsListeners.TryGetValue(id, out var dsListeners)) return;
             if (!dsListeners.Remove(functionId)) return;

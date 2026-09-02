@@ -1,4 +1,5 @@
-﻿using Archipelago.MultiClient.Net;
+﻿using System.Net.Mail;
+using Archipelago.MultiClient.Net;
 using static CreepyUtil.Archipelago.ArchipelagoTag;
 
 namespace CreepyUtil.Archipelago;
@@ -19,14 +20,14 @@ public class TagManager
 
     public static TagManager operator +(TagManager manager, ArchipelagoTag tag)
     {
-        if (!manager.Tags.Add(tag)) return manager;
+        if (!manager.Client.IsConnected || !manager.Session.Socket.Connected || !manager.Tags.Add(tag)) return manager;
         manager.UpdateTags();
         return manager;
     }
 
     public static TagManager operator -(TagManager manager, ArchipelagoTag tag)
     {
-        if (!manager.Tags.Contains(tag)) return manager;
+        if (!manager.Client.IsConnected || !manager.Session.Socket.Connected || !manager.Tags.Add(tag)) return manager;
         manager.Tags.Remove(tag);
         manager.UpdateTags();
         return manager;
@@ -66,7 +67,7 @@ public class TagManager
     private void UpdateTags()
     {
         if (!Client.IsConnected || !Session.Socket.Connected) return;
-        Session.ConnectionInfo.UpdateConnectionOptions(GetTagsAsStrings()); 
+        Session.ConnectionInfo.UpdateConnectionOptions(GetTagsAsStrings());
     }
 
     public bool this[ArchipelagoTag tag] => Tags.Contains(tag);
