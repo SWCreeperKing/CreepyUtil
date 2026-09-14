@@ -1,5 +1,6 @@
 ﻿using Archipelago.MultiClient.Net.Enums;
 using Archipelago.MultiClient.Net.Helpers;
+using Archipelago.MultiClient.Net.Models;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -12,6 +13,9 @@ public partial class ApClient
     private Dictionary<int, Dictionary<string, DataStorageHelper.DataStorageUpdatedHandler>> DsListeners = [];
 
     public bool ContainsDataStorageListener(string key, string functionId, Scope scope = Scope.Global)
+        => ContainsDataStorageListener(key, functionId, (int)scope);
+
+    public bool ContainsDataStorageListener(string key, string functionId, int scope = -1)
     {
         var id = (key, scope).GetHashCode();
         if (!CoreDsListeners.ContainsKey(id)) return false;
@@ -20,6 +24,10 @@ public partial class ApClient
 
     public void AddDataStorageListener(string key, string functionId,
         DataStorageHelper.DataStorageUpdatedHandler action, Scope scope = Scope.Global)
+        => AddDataStorageListener(key, functionId, action, (int)scope);
+
+    public void AddDataStorageListener(string key, string functionId,
+        DataStorageHelper.DataStorageUpdatedHandler action, int scope = -1)
     {
         try
         {
@@ -37,13 +45,16 @@ public partial class ApClient
 
             if (CoreDsListeners.ContainsKey(id)) return;
             DataStorageHelper.DataStorageUpdatedHandler listener = (o, n, d) => OnValueChanged(id, o, n, d);
-            Session!.DataStorage[scope, key].OnValueChanged += listener;
+            GetDataStorageElement(key, scope).OnValueChanged += listener;
             CoreDsListeners[id] = listener;
         }
         catch (Exception e) { OnDataStorageListenerError?.Invoke(e); }
     }
 
     public void RemoveDataStorageListeners(string key, string functionId, Scope scope = Scope.Global)
+        => RemoveDataStorageListeners(key, functionId, (int)scope);
+
+    public void RemoveDataStorageListeners(string key, string functionId, int scope = -1)
     {
         try
         {
@@ -54,7 +65,7 @@ public partial class ApClient
             if (DsListeners[id].Count != 0) return;
             if (!CoreDsListeners.TryGetValue(id, out var listener)) return;
 
-            Session!.DataStorage[key].OnValueChanged -= listener;
+            GetDataStorageElement(key, scope).OnValueChanged -= listener;
             CoreDsListeners.Remove(id);
         }
         catch (Exception e) { OnDataStorageListenerError?.Invoke(e); }
@@ -72,10 +83,12 @@ public partial class ApClient
     }
 
     public T? GetFromStorage<T>(string key, Scope scope = Scope.Slot, T? def = default)
+        => GetFromStorage(key, (int)scope, def);
+    
+    public T? GetFromStorage<T>(string key, int scope = -1, T? def = default)
     {
         T? data;
-        // try { data = JsonConvert.DeserializeObject<T>(Session!.DataStorage[scope, key].To<string>())!; }
-        try { data = Session!.DataStorage[scope, key].GetAsync().Result.ToObject<T>()!; }
+        try { data = GetDataStorageElement(key, scope).GetAsync().Result.ToObject<T>()!; }
         catch (ArgumentException) { data = def; }
         catch (Exception e)
         {
@@ -87,8 +100,12 @@ public partial class ApClient
     }
 
     public void GetFromStorageAsync<T>(string key, Action<T?> callBack, Scope scope = Scope.Slot, T? def = default)
+        => GetFromStorageAsync(key, callBack, (int)scope, def);
+
+    public void GetFromStorageAsync<T>(string key, Action<T?> callBack, int scope = -1, T? def = default)
     {
-        Session!.DataStorage[scope, key].GetAsync().ContinueWith(obj =>
+        GetDataStorageElement(key, scope).GetAsync().ContinueWith(obj
+                =>
             {
                 T? data;
                 try { data = obj.Result.ToObject<T>()!; }
@@ -103,6 +120,14 @@ public partial class ApClient
         );
     }
 
-    public void SendToStorage<T>(string key, T data, Scope scope = Scope.Slot)
-        => Session!.DataStorage[scope, key] = JsonConvert.SerializeObject(data);
+    public void SendToStorage<T>(string key, T data, Scope scope = Scope.Slot) => SendToStorage(key, data, (int)scope);
+
+    public void SendToStorage<T>(string key, T data, int scope = -1)
+    {
+        if (scope is -1) Session!.DataStorage[key] = JsonConvert.SerializeObject(data);
+        else Session!.DataStorage[(Scope)scope, key] = JsonConvert.SerializeObject(data);
+    }
+
+    private DataStorageElement GetDataStorageElement(string key, int scope = -1)
+        => scope is -1 ? Session!.DataStorage[key] : Session!.DataStorage[(Scope)scope, key];
 }

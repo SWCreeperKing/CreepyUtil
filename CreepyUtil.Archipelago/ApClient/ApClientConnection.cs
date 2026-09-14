@@ -11,6 +11,7 @@ namespace CreepyUtil.Archipelago.ApClient;
 public partial class ApClient : IDisposable
 {
     public bool IsConnected { get; private set; } = false;
+    public int PlayerTeam { get; private set; }
     public int PlayerSlot { get; private set; }
     public string PlayerName { get; private set; }
     public string PlayerGame { get; private set; }
@@ -54,7 +55,7 @@ public partial class ApClient : IDisposable
     public event Action<ReadOnlyCollection<long>>? CheckedLocationsUpdated;
     public event ArchipelagoSocketHelperDelagates.ErrorReceivedHandler? OnConnectionErrorReceived;
     public event Action<Exception>? OnErrorReceived;
-    public event Action<Hint[]>? HintsTrackedEvent;
+    public event Action<Hint[], Hint[]>? HintsTrackedEvent;
     public event Action<ItemHandler>? ItemHandlerInitialized;
 
     public ApClient(TimeSpan? timeout = null) => ServerTimeout = timeout ?? new TimeSpan(0, 0, 10);
@@ -79,6 +80,7 @@ public partial class ApClient : IDisposable
             );
 
             if (!result.Successful) return ((LoginFailure)result).Errors;
+            PlayerTeam = Session.Players.ActivePlayer.Team;
             PlayerSlot = Session.Players.ActivePlayer.Slot;
             PlayerSlotArr = [PlayerSlot];
             PlayerName = Session.Players.ActivePlayer.Name;
@@ -88,8 +90,9 @@ public partial class ApClient : IDisposable
 
             Session.DataStorage.TrackHints(hints =>
                 {
+                    var newHints = hints.Where(h => Hints.All(hint => h.GetHashCode() != hint.GetHashCode()));
                     Hints = hints;
-                    HintsTrackedEvent?.Invoke(hints);
+                    HintsTrackedEvent?.Invoke(hints, [.. newHints]);
                 }
             );
 
