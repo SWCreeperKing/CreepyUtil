@@ -84,6 +84,7 @@ public class WorldInitFactory(WorldFactory worldFactory,
     private MethodFactory? SetRules;
     private MethodFactory? FillSlotData;
     private MethodFactory? GenerateOutput;
+    private MethodFactory? GetFillerItemName;
     private Dictionary<string, string> ItemNameGroups = [];
     private Dictionary<string, string> LocationNameGroups = [];
 
@@ -191,8 +192,9 @@ public class WorldInitFactory(WorldFactory worldFactory,
         {
             foreach (var option in WorldFactory.GetOptionsFactory().OptionNames)
             {
-                finalData[option.Key.FormatStringForOptionsVar(stringify: true)]
-                    = option.Value.DataType($"self.options.{option.Key.FormatStringForOptionsVar()}");
+                finalData[option.Key.FormatStringForOptionsVar(stringify: true)] = option.Value.DataType(
+                    $"self.options.{option.Key.FormatStringForOptionsVar()}"
+                );
             }
         }
 
@@ -204,6 +206,23 @@ public class WorldInitFactory(WorldFactory worldFactory,
         FillSlotData.AddCode(new MappedVariable<string, string>("slot_data", finalData))
                     .AddCode("return slot_data");
 
+        return this;
+    }
+
+    public WorldInitFactory UseGetFillerItemNames(params string[] itemNames)
+    {
+        GetFillerItemName =
+            new MethodFactory("get_filler_item_name")
+               .AddParam("self").AddCode(
+                    $"return [{string.Join(',', itemNames.Select(s => $"\"{s}\""))}][self.random.randint(0,{itemNames.Length})]"
+                );
+        return this;
+    }
+
+    public WorldInitFactory UseGetFillerItemName(string itemName)
+    {
+        GetFillerItemName = new MethodFactory("get_filler_item_name")
+                           .AddParam("self").AddCode($"return \"{itemName}\"");
         return this;
     }
 
@@ -274,7 +293,7 @@ public class WorldInitFactory(WorldFactory worldFactory,
         WorldClass
            .AddMethods(
                 InitFunction, GenerateEarly, CreateRegions, CreateItem, CreateItems, SetRules, FillSlotData,
-                GenerateOutput
+                GetFillerItemName, GenerateOutput
             );
 
         WorldFile.AddObject(WorldClass);
