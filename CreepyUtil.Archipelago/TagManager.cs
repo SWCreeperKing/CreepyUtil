@@ -20,14 +20,14 @@ public class TagManager
 
     public static TagManager operator +(TagManager manager, ArchipelagoTag tag)
     {
-        if (!manager.Client.IsConnected || !manager.Session.Socket.Connected || !manager.Tags.Add(tag)) return manager;
+        if (!manager.Tags.Add(tag)) return manager;
         manager.UpdateTags();
         return manager;
     }
 
     public static TagManager operator -(TagManager manager, ArchipelagoTag tag)
     {
-        if (!manager.Client.IsConnected || !manager.Session.Socket.Connected || !manager.Tags.Add(tag)) return manager;
+        if (!manager.Tags.Contains(tag)) return manager;
         manager.Tags.Remove(tag);
         manager.UpdateTags();
         return manager;
@@ -66,8 +66,15 @@ public class TagManager
 
     private void UpdateTags()
     {
-        if (!Client.IsConnected || !Session.Socket.Connected) return;
-        Session.ConnectionInfo.UpdateConnectionOptions(GetTagsAsStrings());
+        try
+        {
+            if (!Client.IsConnected || !Session.Socket.Connected) return;
+            Session.ConnectionInfo.UpdateConnectionOptions(GetTagsAsStrings());
+        }
+        catch (Exception e)
+        {
+            Client.ThrowError(e);
+        }
     }
 
     public bool this[ArchipelagoTag tag] => Tags.Contains(tag);

@@ -26,7 +26,7 @@ public partial class ApClient
     private Dictionary<string, Dictionary<long, string>> _ItemIdToName = [];
     private Dictionary<string, Dictionary<long, string>> _LocationIdToName = [];
 
-    public bool IsMissingLocation(string loc) => MissingLocations.Contains(Locations[loc]);
+    public bool IsMissingLocation(string loc) => Locations.TryGetValue(loc, out var locId) && MissingLocations.Contains(locId);
     
     public bool SendLocation(string id)
     {

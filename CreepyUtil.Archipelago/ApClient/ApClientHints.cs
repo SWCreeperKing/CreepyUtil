@@ -13,6 +13,9 @@ public partial class ApClient
     public int HintPoints => Session?.RoomState?.HintPoints ?? -1;
     public int LocationCheckPoints => Session?.RoomState?.LocationCheckPoints ?? -1;
 
+    public Hint[] GetHints(int? slot = null, int? team = null)
+        => !IsConnected ? [] : Session?.Hints.GetHints(slot, team)!;
+
     public void UpdateHint(int slot, long location, HintStatus priority)
     {
         Session?.Socket.SendPacketAsync(new UpdateHintPacket { Player = slot, Location = location, Status = priority })

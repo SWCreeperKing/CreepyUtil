@@ -15,6 +15,7 @@ public partial class ApClient : IDisposable
     public int PlayerSlot { get; private set; }
     public string PlayerName { get; private set; }
     public string PlayerGame { get; private set; }
+    public PlayerInfo ThisInfo { get; private set; } 
     public string[] PlayerNames { get; private set; }
     public string[] PlayerGames { get; private set; }
     public ItemHandler ItemHandler { get; private set; }
@@ -87,6 +88,7 @@ public partial class ApClient : IDisposable
             PlayerGame = Session.Players.ActivePlayer.Game;
             PlayerNames = [.. Session.Players.AllPlayers.Select(player => player.Name!)];
             PlayerGames = [.. Session.Players.AllPlayers.Select(player => player.Game)];
+            ThisInfo = Session.Players.ActivePlayer;
 
             Session.DataStorage.TrackHints(hints =>
                 {
@@ -157,4 +159,6 @@ public partial class ApClient : IDisposable
     }
 
     public void Dispose() => TryDisconnect();
+
+    public void ThrowError(Exception e) => OnErrorReceived?.Invoke(e);
 }
