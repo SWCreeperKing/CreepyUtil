@@ -15,7 +15,7 @@ public partial class ApClient : IDisposable
     public int PlayerSlot { get; private set; }
     public string PlayerName { get; private set; }
     public string PlayerGame { get; private set; }
-    public PlayerInfo ThisInfo { get; private set; } 
+    public PlayerInfo ThisInfo { get; private set; }
     public string[] PlayerNames { get; private set; }
     public string[] PlayerGames { get; private set; }
     public ItemHandler ItemHandler { get; private set; }
@@ -137,6 +137,8 @@ public partial class ApClient : IDisposable
         locations = lookup.Locations;
         items = lookup.Items;
     }
+
+    public T CastSlotData<T>() where T : class => Session!.DataStorage.GetSlotData<T>();
 
     public void UpdateItemHandler()
     {

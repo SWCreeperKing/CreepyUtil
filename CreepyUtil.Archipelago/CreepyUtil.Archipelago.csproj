@@ -28,6 +28,7 @@
         <ConbunnCardboard>$(SteamLibraryF)\Conbunn Cardboard</ConbunnCardboard>
         <PlagueInc>$(SteamLibraryF)\PlagueInc</PlagueInc>
         <Poco>$(SteamLibraryD)\Poco</Poco>
+        <Loddlenaut>$(SteamLibraryF)\Loddlenaut</Loddlenaut>
     </PropertyGroup>
 
     <ItemGroup>
@@ -92,6 +93,9 @@
 
         <Copy SourceFiles="$(ProjectBin)\Debug\net472/BundledApClient.dll" DestinationFolder="$(Poco)\mod dev\Pocopelago\Pocopelago\Lib"/>
         <Copy SourceFiles="$(ProjectBin)\Debug\net472/BundledApClient.dll" DestinationFolder="$(Poco)\UserLibs"/>
+
+        <Copy SourceFiles="$(ProjectBin)\Debug\net472/BundledApClient.dll" DestinationFolder="$(Loddlenaut)\mod dev\Loddlepelago\Loddlepelago\Lib"/>
+        <Copy SourceFiles="$(ProjectBin)\Debug\net472/BundledApClient.dll" DestinationFolder="$(Loddlenaut)\UserLibs"/>
     </Target>
 
     <Target Name="AfterBuildNetStandard2" AfterTargets="Build" Condition="'$(TargetFramework)' == 'netstandard2.0'">

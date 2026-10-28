@@ -305,7 +305,7 @@ public readonly struct EventLocationData(string region, string locationName, str
 {
     public readonly string Region = region.Surround('"');
     public readonly string LocationName = locationName.Surround('"');
-    public readonly string InheritLocationRule = inheritLocationRule is "" ? "" : inheritLocationRule.Surround('"');
+    public readonly string InheritLocationRule = inheritLocationRule.Surround('"');
     public readonly string ItemName = lockedItemName.Surround('"');
     public readonly bool IsLocationCrucial = isLocCrucial;
     

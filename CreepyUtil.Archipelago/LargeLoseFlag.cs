@@ -5,7 +5,9 @@ public class LargeLoseFlag<T>
     private string TrackingFlag;
     private List<T> FlagMap = [];
 
+    public string GetTrackingFlag => $"{TrackingFlag}";
     public string MaxFlag => TrackingFlag.Replace("0", "1");
+    public string MinFlag => TrackingFlag.Replace("1", "0");
     public bool IsMaxFlag => TrackingFlag == MaxFlag;
 
     public LargeLoseFlag(string flag = "") => SetFlag(flag);
@@ -27,6 +29,7 @@ public class LargeLoseFlag<T>
         if (flag is not "" && flag.Any(s => s is not ('1' or '0')))
             throw new ArgumentException("Input flag is not in correct format");
         TrackingFlag = flag;
+        FillMissingSize();
     }
 
     private void FillMissingSize()

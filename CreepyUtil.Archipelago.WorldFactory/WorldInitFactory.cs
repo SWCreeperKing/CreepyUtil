@@ -214,7 +214,7 @@ public class WorldInitFactory(WorldFactory worldFactory,
         GetFillerItemName =
             new MethodFactory("get_filler_item_name")
                .AddParam("self").AddCode(
-                    $"return [{string.Join(',', itemNames.Select(s => $"\"{s}\""))}][self.random.randint(0,{itemNames.Length})]"
+                    $"return [{string.Join(',', itemNames.Select(s => $"\"{s}\""))}][self.random.randint(0,{itemNames.Length - 1})]"
                 );
         return this;
     }
