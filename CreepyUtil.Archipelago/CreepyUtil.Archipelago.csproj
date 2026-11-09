@@ -29,6 +29,7 @@
         <PlagueInc>$(SteamLibraryF)\PlagueInc</PlagueInc>
         <Poco>$(SteamLibraryD)\Poco</Poco>
         <Loddlenaut>$(SteamLibraryF)\Loddlenaut</Loddlenaut>
+        <DinoBoneMuseum>$(SteamLibraryD)\DinoBones Tidy Up the Museum</DinoBoneMuseum>
     </PropertyGroup>
 
     <ItemGroup>
@@ -96,6 +97,9 @@
 
         <Copy SourceFiles="$(ProjectBin)\Debug\net472/BundledApClient.dll" DestinationFolder="$(Loddlenaut)\mod dev\Loddlepelago\Loddlepelago\Lib"/>
         <Copy SourceFiles="$(ProjectBin)\Debug\net472/BundledApClient.dll" DestinationFolder="$(Loddlenaut)\UserLibs"/>
+        
+        <Copy SourceFiles="$(ProjectBin)\Debug\net472/BundledApClient.dll" DestinationFolder="$(DinoBoneMuseum)\mod dev\DinoBonipelago\DinoBonipelago\Lib"/>
+        <Copy SourceFiles="$(ProjectBin)\Debug\net472/BundledApClient.dll" DestinationFolder="$(DinoBoneMuseum)\UserLibs"/>
     </Target>
 
     <Target Name="AfterBuildNetStandard2" AfterTargets="Build" Condition="'$(TargetFramework)' == 'netstandard2.0'">

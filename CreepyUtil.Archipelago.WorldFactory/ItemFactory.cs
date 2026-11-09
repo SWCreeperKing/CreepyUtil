@@ -31,15 +31,9 @@ public class ItemFactory(WorldFactory worldFactory)
     /// </summary>
     public enum ItemClassification
     {
-        Filler,
-        Progression,
-        Useful,
-        Trap,
-        SkipBalancing,
-        Deprioritized,
-        ProgressionDeprioritizedSkipBalancing,
-        ProgressionSkipBalancing,
-        ProgressionDeprioritized,
+        Filler, Progression, Useful,
+        Trap, SkipBalancing, Deprioritized,
+        ProgressionDeprioritizedSkipBalancing, ProgressionSkipBalancing, ProgressionDeprioritized,
     }
 
     public string
@@ -51,7 +45,7 @@ public class ItemFactory(WorldFactory worldFactory)
     private List<string> AllItems = [];
     private HashSet<string> ItemMap = [];
     private List<IPythonVariable> ItemVariables = [];
-    private MethodFactory? CreateItems;
+    private ItemFactoryMethodFactory? CreateItems;
 
     public ItemFactory AddItem(string item, ItemClassification classification, bool stringify = true)
     {
@@ -62,45 +56,39 @@ public class ItemFactory(WorldFactory worldFactory)
     }
 
     public ItemFactory AddItems(ItemClassification classification, bool stringify = true, params string[] items)
-        => items.Aggregate(
-            this, (factory, s)
-                => factory.AddItem(s, classification, stringify)
-        );
+        => items.Aggregate(this, (factory, s) => factory.AddItem(s, classification, stringify));
 
-    public ItemFactory AddItemCountVariable(
-        string name, Dictionary<string, int> itemsAndCount, ItemClassification classification, bool stringify = true,
-        bool addToList = true
-    )
+    public ItemFactory AddItemCountVariable(string name, Dictionary<string, int> itemsAndCount,
+        ItemClassification classification, bool stringify = true,
+        bool addToList = true)
     {
         var map = new MappedVariable<string, int>(
             name, stringify ? itemsAndCount.ToDictionary(kv => kv.Key.Surround('"'), kv => kv.Value) : itemsAndCount
         );
 
         ItemVariables.Add(map);
-        
+
         if (!addToList) return this;
         AllItems.AddRange(itemsAndCount.Keys);
         ItemMap.Add($"**{{item: ItemClassification.{ClassificationMap[classification]} for item in {name}}}");
         return this;
     }
 
-    public ItemFactory AddItemListVariable(
-        string name, ItemClassification classification, bool stringify = true,
-        bool addToList = true, params string[] list
-    )
+    public ItemFactory AddItemListVariable(string name, ItemClassification classification, bool stringify = true,
+        bool addToList = true, params string[] list)
     {
         var arr = new StringArray(name, list, stringify: stringify);
         ItemVariables.Add(arr);
-        
+
         if (!addToList) return this;
         AllItems.AddRange(list);
         ItemMap.Add($"**{{item: ItemClassification.{ClassificationMap[classification]} for item in {name}}}");
         return this;
     }
 
-    public ItemFactory AddCreateItems(Action<MethodFactory> createItems, params string[] parameters)
+    public ItemFactory AddCreateItems(Action<ItemFactoryMethodFactory> createItems, params string[] parameters)
     {
-        CreateItems = new MethodFactory("gen_create_items")
+        CreateItems = new ItemFactoryMethodFactory(WorldFactory)
                      .AddParam("world").AddParams(parameters)
                      .AddCode("pool = world.multiworld.itempool")
                      .AddCode("options = world.options");
@@ -113,7 +101,7 @@ public class ItemFactory(WorldFactory worldFactory)
         ItemVariables.Add(variable);
         return this;
     }
-    
+
     public ItemFactory AddToFinalLocationList(string addToFinalList)
     {
         if (addToFinalList is "") return this;
@@ -126,22 +114,21 @@ public class ItemFactory(WorldFactory worldFactory)
         AllItems.Add(item);
         return this;
     }
-    
+
     public ItemFactory AddToAllItemsOutput(params string[] item)
     {
         AllItems.AddRange(item);
         return this;
     }
-    
-    public void GenerateItemsFile(
-        out string[] itemsArray,
+
+    public void GenerateItemsFile(out string[] itemsArray,
         string fileOutput = "Items.py",
         string imports = """
+                         import math
                          from BaseClasses import ItemClassification
                          from .Locations import *
                          from .Options import *
-                         """
-    )
+                         """)
     {
         itemsArray = [.. AllItems];
         var itemsPy = new PythonFactory()
@@ -154,4 +141,115 @@ public class ItemFactory(WorldFactory worldFactory)
 
         File.WriteAllText($"{worldFactory.OutputDirectory}{fileOutput}", itemsPy.GetText());
     }
+}
+
+public class ItemFactoryMethodFactory(WorldFactory worldFactory)
+    : MethodFactoryType<ItemFactoryMethodFactory>("gen_create_items")
+{
+    public WorldFactory WorldFactory = worldFactory;
+
+    public ItemFactoryMethodFactory CreateItem(string item, bool stringify = true, string amount = "1",
+        bool removeFromPool = true)
+        => AddCode(Raw_CreateItem(item, stringify, amount, removeFromPool));
+
+    public CodeBlockFactory Raw_CreateItem(string item, bool stringify = true, string amount = "1",
+        bool removeFromPool = true)
+    {
+        var block = new CodeBlockFactory();
+        if (removeFromPool) block.AddCode($"world.location_count -= {amount}");
+
+        return block.AddCode($"pool.append(world.create_item({(stringify ? item.Surround('"') : item)}))");
+    }
+
+
+    /// <summary>
+    /// makes create items code based on a Dict[str, int]
+    /// </summary>
+    public ItemFactoryMethodFactory CreateItemsFromMapCountGenCode(string collection, bool removeFromPool = true)
+        => AddCode(Raw_CreateItemsFromMapCountGenCode(collection, removeFromPool));
+
+    public ForLoopFactory Raw_CreateItemsFromMapCountGenCode(string collection, bool removeFromPool = true)
+    {
+        var loop = new ForLoopFactory("item, amt", $"{collection}.items()");
+        if (removeFromPool) loop.AddCode("world.location_count -= amt");
+
+        return loop.AddCode(new ForLoopFactory("_", "range(amt)").AddCode("pool.append(world.create_item(item))"));
+    }
+
+
+    public ItemFactoryMethodFactory CreateItemsFromCountGenCode(string amount, string item, bool stringify = true,
+        bool removeFromPool = true)
+        => AddCode(Raw_CreateItemsFromCountGenCode(amount, item, stringify, removeFromPool));
+
+    public ForLoopFactory Raw_CreateItemsFromCountGenCode(string amount, string item, bool stringify = true,
+        bool removeFromPool = true)
+        => new ForLoopFactory("_", $"range({amount})")
+           .AddCode(Raw_CreateItem(item, stringify, removeFromPool: removeFromPool));
+
+
+    public ItemFactoryMethodFactory FillRemainingWith(string collection) => AddCode(Raw_FillRemainingWith(collection));
+
+    public ForLoopFactory Raw_FillRemainingWith(string collection)
+        => new ForLoopFactory("_", "range(world.location_count)").AddCode(
+            $"pool.append(world.create_item(world.random.choice({collection})))"
+        );
+
+
+    public ItemFactoryMethodFactory CreateItemForLoop(string collection, string forVariable = "item",
+        string createItemVariable = "item", string exclusionCondition = "", bool stringify = false, string amount = "1",
+        bool removeFromPool = true) => AddCode(
+        Raw_CreateItemForLoop(
+            collection, forVariable, createItemVariable, exclusionCondition, stringify, amount, removeFromPool
+        )
+    );
+
+    public ForLoopFactory Raw_CreateItemForLoop(string collection, string forVariable = "item",
+        string createItemVariable = "item", string exclusionCondition = "", bool stringify = false, string amount = "1",
+        bool removeFromPool = true)
+    {
+        var forLoop = new ForLoopFactory(forVariable, collection);
+
+        if (exclusionCondition is not "") forLoop.AddCode(new IfFactory(exclusionCondition).AddCode("continue"));
+
+        return forLoop.AddCode(Raw_CreateItem(createItemVariable, stringify, amount, removeFromPool));
+    }
+
+
+    public ItemFactoryMethodFactory CreateItemsFromClassificationList(string collection = "item_table.items()",
+        bool removeFromPool = true, string exclusionCondition = "")
+        => AddCode(Raw_CreateItemsFromClassificationList(collection, removeFromPool, exclusionCondition));
+
+    public ForLoopFactory Raw_CreateItemsFromClassificationList(string collection = "item_table.items()",
+        bool removeFromPool = true, string exclusionCondition = "") => Raw_CreateItemForLoop(
+        collection, "item, classification", exclusionCondition: exclusionCondition, removeFromPool: removeFromPool
+    );
+
+
+    public ItemFactoryMethodFactory CreateItemsFromList(string collection, bool removeFromPool = true,
+        string exclusionCondition = "")
+        => AddCode(Raw_CreateItemsFromList(collection, removeFromPool, exclusionCondition));
+
+    public ForLoopFactory Raw_CreateItemsFromList(string collection, bool removeFromPool = true,
+        string exclusionCondition = "") => Raw_CreateItemForLoop(
+        collection, exclusionCondition: exclusionCondition, removeFromPool: removeFromPool
+    );
+
+
+    public ItemFactoryMethodFactory FillRemainingWithItem(string item, bool stringify = true)
+        => AddCode(Raw_FillRemainingWithItem(item, stringify));
+
+    public ForLoopFactory Raw_FillRemainingWithItem(string item, bool stringify = true)
+        => new ForLoopFactory("_", "range(world.location_count)").AddCode(
+            $"pool.append(world.create_item({(stringify ? item.Surround('"') : item)}))"
+        );
+
+
+    public ItemFactoryMethodFactory BalanceLocalFill()
+        => !WorldFactory.LocalFill ? this : AddCode(Raw_BalanceLocalFill());
+
+    public IfFactory Raw_BalanceLocalFill() =>
+        new IfFactory("world.enable_local_fill")
+           .AddCode("fill = math.ceil(world.location_count * (options.local_fill.value/100))")
+           .AddCode("world.location_count -= fill")
+           .AddCode("world.local_location_count += fill");
 }

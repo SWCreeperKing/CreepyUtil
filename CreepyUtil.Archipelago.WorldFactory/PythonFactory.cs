@@ -56,7 +56,7 @@ public class PythonClassFactory(string className) : IPythonObject
 
     private List<PythonClassFactory> Classes = [];
     private List<IPythonVariable> Variables = [];
-    private List<MethodFactory> Methods = [];
+    private List<IPythonObject> Methods = [];
 
     public PythonClassFactory AddDecorator(string decorator)
     {
@@ -112,14 +112,14 @@ public class PythonClassFactory(string className) : IPythonObject
         return this;
     }
 
-    public PythonClassFactory AddMethod(MethodFactory? method)
+    public PythonClassFactory AddMethod<T>(MethodFactoryType<T>? method) where T : MethodFactoryType<T>
     {
         if (method is null) return this;
         Methods.Add(method);
         return this;
     }
 
-    public PythonClassFactory AddMethods(params MethodFactory?[] methods)
+    public PythonClassFactory AddMethods(params IPythonObject?[] methods)
     {
         Methods.AddRange(methods.Where(method => method is not null)!);
         return this;
@@ -164,34 +164,36 @@ public class PythonClassFactory(string className) : IPythonObject
             if (Methods.Count != 0) sb.Append('\n');
         }
 
-        sb.Append(string.Join("\n\n", Methods.Select(m => m.GetMethod(indentLevel + 1))));
+        sb.Append(string.Join("\n\n", Methods.Select(m => m.GetText(indentLevel + 1))));
 
         return sb.ToString();
     }
 }
 
-public class MethodFactory(string methodName) : TCodeBlockFactory<MethodFactory>
+public class MethodFactory(string methodName) : MethodFactoryType<MethodFactory>(methodName);
+
+public class MethodFactoryType<T>(string methodName) : TCodeBlockFactory<T> where T : MethodFactoryType<T>
 {
     private string MethodName = methodName;
     private List<string> Parameters = [];
     private string Return = ""; // not needed, just there because
 
-    public MethodFactory AddParam(string param)
+    public T AddParam(string param)
     {
         Parameters.Add(param);
-        return this;
+        return (T)this;
     }
 
-    public MethodFactory AddParams(params string[] param)
+    public T AddParams(params string[] param)
     {
         Parameters.AddRange(param);
-        return this;
+        return (T)this;
     }
 
-    public MethodFactory SetReturn(string retrn)
+    public T SetReturn(string retrn)
     {
         Return = retrn;
-        return this;
+        return (T)this;
     }
 
     public string GetMethod(int indentLevel = 0)

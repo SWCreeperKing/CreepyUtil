@@ -25,7 +25,7 @@ public class OptionsFactory(WorldFactory worldFactory)
                                             .AddParameter("PerGameCommonOptions")
                                             .AddDecorator("@dataclass");
 
-    private MethodFactory? CheckOptions = null;
+    private CreateOptionsMethodFactory? CheckOptions = null;
     public Dictionary<string, IOptionType> OptionNames { get; private set; } = [];
 
     public OptionsFactory AddOption(string optionName, string description, IOptionType option, string category = "")
@@ -50,10 +50,10 @@ public class OptionsFactory(WorldFactory worldFactory)
         return this;
     }
 
-    public OptionsFactory AddCheckOptions(Action<MethodFactory>? checkOptions = null)
+    public OptionsFactory AddCheckOptions(Action<CreateOptionsMethodFactory>? checkOptions = null)
     {
         CheckOptions ??=
-            new MethodFactory("check_options")
+            new CreateOptionsMethodFactory(WorldFactory)
                .AddParam("world")
                .AddCode(new Variable("options", "world.options"))
                .AddCode(new Variable("random", "world.random"))
@@ -74,6 +74,11 @@ public class OptionsFactory(WorldFactory worldFactory)
         from .Locations import *
         """)
     {
+        if (WorldFactory.LocalFill)
+            AddOption(
+                "Local Fill", "% of filler to be made local",
+                new Range(WorldFactory.LocalDefault, WorldFactory.LocalFillMin, 100)
+            );
         // if (OptionsGroups.Any())
         // {
         //     OptionClass.AddVariable(new Variable("option_groups", $"[{OptionsGroups.Select(kv => $"OptionGroup(\"{kv.Key}\", [{string.Join(", ", kv.Value.Select(s => $"Options"))}])")}]"));
@@ -112,6 +117,22 @@ public class OptionsFactory(WorldFactory worldFactory)
 
         File.WriteAllText($"{worldFactory.OutputDirectory}{fileOutput}", optionsPy.GetText());
     }
+}
+
+public class CreateOptionsMethodFactory(WorldFactory worldFactory)
+    : MethodFactoryType<CreateOptionsMethodFactory>("check_options")
+{
+    public WorldFactory WorldFactory = worldFactory;
+
+    public CreateOptionsMethodFactory CreateMinimalCatch() => AddCode(Raw_CreateMinimalCatch());
+
+    public CodeBlockFactory Raw_CreateMinimalCatch() => new CodeBlockFactory().AddCode(
+        $"""
+         if options.accessibility == Accessibility.option_minimal:
+             print("{worldFactory.GameName} doesn't support accessibility minimal, defaulting accessibility to full")
+             options.accessibility = Accessibility(Accessibility.option_full)
+         """
+    );
 }
 
 public class OptionSet(string[] def, string[] collection) : IOptionType

@@ -240,7 +240,11 @@ public class RegionFactory(WorldFactory worldFactory)
                         .AddCode(
                              """
                              loc = make_location_adv(world, location_name, location_name, world.location_name_to_id[location_name], region_name, region_map, rule_map, is_location_crucial)
-                             if loc is not None: world.location_count += 1
+                             if loc is not None: 
+                                world.location_count += 1
+                                
+                                if world.enable_local_fill:
+                                    local_fill_loc.append(loc)
                              return loc
                              """
                          )

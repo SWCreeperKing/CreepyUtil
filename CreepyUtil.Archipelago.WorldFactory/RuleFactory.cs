@@ -1,5 +1,4 @@
 ﻿using System.Text;
-using static CreepyUtil.Archipelago.WorldFactory.PremadePython;
 using static CreepyUtil.Archipelago.WorldFactory.RuleFactory;
 
 namespace CreepyUtil.Archipelago.WorldFactory;
@@ -31,6 +30,22 @@ public partial class WorldFactory
                    $"return all(has({string.Join(", ", DefaultParams)}, item) for item in items)", "items"
                );
     }
+    
+    public static string StateHas(
+        string item, string count = "1", bool stringify = true, bool returnValue = true, string player = "player",
+        string state = "state"
+    )
+        => $"{(returnValue ? "return " : "")}{state}.has({(stringify ? item.Surround("\"") : item)}, {player}, {count})";
+
+    public static string StateHasAll(
+        string collection, bool returnValue = true, string player = "player", string state = "state"
+    )
+        => $"{(returnValue ? "return " : "")}{state}.has_all({collection}, {player})";
+
+    public static string StateHasAny(
+        string collection, bool returnValue = true, string player = "player", string state = "state"
+    )
+        => $"{(returnValue ? "return " : "")}{state}.has_any({collection}, {player})";
 }
 
 public class RuleFactory(WorldFactory worldFactory)
