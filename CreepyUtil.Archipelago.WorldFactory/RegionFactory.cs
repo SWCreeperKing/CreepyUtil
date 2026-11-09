@@ -244,7 +244,7 @@ public class RegionFactory(WorldFactory worldFactory)
                                 world.location_count += 1
                                 
                                 if world.enable_local_fill:
-                                    local_fill_loc.append(loc)
+                                    world.local_fill_loc.append(loc)
                              return loc
                              """
                          )

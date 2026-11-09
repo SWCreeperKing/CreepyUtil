@@ -306,7 +306,7 @@ public class WorldInitFactory(WorldFactory worldFactory,
 
         WorldClass
            .AddMethods(
-                InitFunction, GenerateEarly, CreateRegions, CreateItem, CreateItems, SetRules, FillSlotData,
+                InitFunction, GenerateEarly, CreateRegions, CreateItem, CreateItems, SetRules, PreFill, FillSlotData,
                 GetFillerItemName, GenerateOutput
             );
 
