@@ -45,7 +45,7 @@ public class ItemFactory(WorldFactory worldFactory)
     private List<string> AllItems = [];
     private HashSet<string> ItemMap = [];
     private List<IPythonVariable> ItemVariables = [];
-    private ItemMethodFactory? CreateItems;
+    private CreateItemsMethodFactory? CreateItems;
 
     public ItemFactory AddItem(string item, ItemClassification classification, bool stringify = true)
     {
@@ -86,9 +86,9 @@ public class ItemFactory(WorldFactory worldFactory)
         return this;
     }
 
-    public ItemFactory AddCreateItems(Action<ItemMethodFactory> createItems, params string[] parameters)
+    public ItemFactory AddCreateItems(Action<CreateItemsMethodFactory> createItems, params string[] parameters)
     {
-        CreateItems = new ItemMethodFactory(WorldFactory)
+        CreateItems = new CreateItemsMethodFactory(WorldFactory)
                      .AddParam("world").AddParams(parameters)
                      .AddCode("pool = world.multiworld.itempool")
                      .AddCode("options = world.options");
@@ -143,12 +143,12 @@ public class ItemFactory(WorldFactory worldFactory)
     }
 }
 
-public class ItemMethodFactory(WorldFactory worldFactory)
-    : MethodFactoryType<ItemMethodFactory>("gen_create_items")
+public class CreateItemsMethodFactory(WorldFactory worldFactory)
+    : MethodFactoryType<CreateItemsMethodFactory>("gen_create_items")
 {
     public WorldFactory WorldFactory = worldFactory;
 
-    public ItemMethodFactory CreateItem(string item, bool stringify = true, string amount = "1",
+    public CreateItemsMethodFactory CreateItem(string item, bool stringify = true, string amount = "1",
         bool removeFromPool = true)
         => AddCode(Raw_CreateItem(item, stringify, amount, removeFromPool));
 
@@ -165,7 +165,7 @@ public class ItemMethodFactory(WorldFactory worldFactory)
     /// <summary>
     /// makes create items code based on a Dict[str, int]
     /// </summary>
-    public ItemMethodFactory CreateItemsFromMapCountGenCode(string collection, bool removeFromPool = true)
+    public CreateItemsMethodFactory CreateItemsFromMapCountGenCode(string collection, bool removeFromPool = true)
         => AddCode(Raw_CreateItemsFromMapCountGenCode(collection, removeFromPool));
 
     public ForLoopFactory Raw_CreateItemsFromMapCountGenCode(string collection, bool removeFromPool = true)
@@ -177,7 +177,7 @@ public class ItemMethodFactory(WorldFactory worldFactory)
     }
 
 
-    public ItemMethodFactory CreateItemsFromCountGenCode(string amount, string item, bool stringify = true,
+    public CreateItemsMethodFactory CreateItemsFromCountGenCode(string amount, string item, bool stringify = true,
         bool removeFromPool = true)
         => AddCode(Raw_CreateItemsFromCountGenCode(amount, item, stringify, removeFromPool));
 
@@ -187,7 +187,7 @@ public class ItemMethodFactory(WorldFactory worldFactory)
            .AddCode(Raw_CreateItem(item, stringify, removeFromPool: removeFromPool));
 
 
-    public ItemMethodFactory FillRemainingWith(string collection) => AddCode(Raw_FillRemainingWith(collection));
+    public CreateItemsMethodFactory FillRemainingWith(string collection) => AddCode(Raw_FillRemainingWith(collection));
 
     public ForLoopFactory Raw_FillRemainingWith(string collection)
         => new ForLoopFactory("_", "range(world.location_count)").AddCode(
@@ -195,7 +195,7 @@ public class ItemMethodFactory(WorldFactory worldFactory)
         );
 
 
-    public ItemMethodFactory CreateItemForLoop(string collection, string forVariable = "item",
+    public CreateItemsMethodFactory CreateItemForLoop(string collection, string forVariable = "item",
         string createItemVariable = "item", string exclusionCondition = "", bool stringify = false, string amount = "1",
         bool removeFromPool = true) => AddCode(
         Raw_CreateItemForLoop(
@@ -215,7 +215,7 @@ public class ItemMethodFactory(WorldFactory worldFactory)
     }
 
 
-    public ItemMethodFactory CreateItemsFromClassificationList(string collection = "item_table.items()",
+    public CreateItemsMethodFactory CreateItemsFromClassificationList(string collection = "item_table.items()",
         bool removeFromPool = true, string exclusionCondition = "")
         => AddCode(Raw_CreateItemsFromClassificationList(collection, removeFromPool, exclusionCondition));
 
@@ -225,7 +225,7 @@ public class ItemMethodFactory(WorldFactory worldFactory)
     );
 
 
-    public ItemMethodFactory CreateItemsFromList(string collection, bool removeFromPool = true,
+    public CreateItemsMethodFactory CreateItemsFromList(string collection, bool removeFromPool = true,
         string exclusionCondition = "")
         => AddCode(Raw_CreateItemsFromList(collection, removeFromPool, exclusionCondition));
 
@@ -235,7 +235,7 @@ public class ItemMethodFactory(WorldFactory worldFactory)
     );
 
 
-    public ItemMethodFactory FillRemainingWithItem(string item, bool stringify = true)
+    public CreateItemsMethodFactory FillRemainingWithItem(string item, bool stringify = true)
         => AddCode(Raw_FillRemainingWithItem(item, stringify));
 
     public ForLoopFactory Raw_FillRemainingWithItem(string item, bool stringify = true)
@@ -244,7 +244,7 @@ public class ItemMethodFactory(WorldFactory worldFactory)
         );
 
 
-    public ItemMethodFactory BalanceLocalFill()
+    public CreateItemsMethodFactory BalanceLocalFill()
         => !WorldFactory.LocalFill ? this : AddCode(Raw_BalanceLocalFill());
 
     public IfFactory Raw_BalanceLocalFill() =>

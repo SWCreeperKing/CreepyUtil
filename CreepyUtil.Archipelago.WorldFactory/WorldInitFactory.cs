@@ -102,7 +102,7 @@ public class WorldInitFactory(WorldFactory worldFactory,
                         .AddCode("super().__init__(multiworld, player)")
                         .AddCode("self.location_count = 0")
                         .AddCode("self.local_location_count = 0");
-
+        
         action?.Invoke(InitFunction);
         return this;
     }
@@ -282,8 +282,7 @@ public class WorldInitFactory(WorldFactory worldFactory,
 
         WorldClass.AddVariable(new Variable("location_name_to_id", LocationNameToIdMap))
                   .AddVariable(new Variable("item_name_to_id", ItemNameToIdMap))
-                  .AddVariable(new Variable("enable_local_fill", WorldFactory.LocalFill ? "True" : "False"))
-                  .AddVariable(new Variable("local_fill_loc", "[]"));
+                  .AddVariable(new Variable("enable_local_fill", WorldFactory.LocalFill ? "True" : "False"));
 
         if (ItemNameGroups.Count != 0)
         {
@@ -304,6 +303,11 @@ public class WorldInitFactory(WorldFactory worldFactory,
             );
         }
 
+        if (WorldFactory.LocalFill) UseInitFunction(method => method.AddCode(new Variable("local_fill_loc", "[]")));
+        else UseInitFunction();
+        UseCreateRegions();
+        AddCreateItems();
+        
         WorldClass
            .AddMethods(
                 InitFunction, GenerateEarly, CreateRegions, CreateItem, CreateItems, SetRules, PreFill, FillSlotData,
@@ -375,12 +379,13 @@ public class PreFillMethodFactory(WorldFactory worldFactory) : MethodFactoryType
     {
         return !WorldFactory.LocalFill ? ""
             : $"""
+               self.random.shuffle(self.local_fill_loc)
                for _ in range(self.local_location_count):
-                   if len(location_map) == 0:
+                   if len(self.local_fill_loc) == 0:
                        raise OptionError(
                            "ㄟ( ▔, ▔ )ㄏ blame other games for touching my speget (aka. other worlds are stealing {WorldFactory.GameName}'s prefill locations)\nbug the developers of the other worlds because they shouldn't be interfering with other worlds like this")
                    
-                   location = location_map.pop()
+                   location = self.local_fill_loc.pop()
                    try:
                        location.place_locked_item(self.create_item(self.get_filler_item_name()))
                    except:
