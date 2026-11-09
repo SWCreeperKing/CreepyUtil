@@ -6,6 +6,7 @@ public partial class WorldFactory
     public bool LocalFill = false;
     public int LocalFillMin;
     public int LocalDefault;
+    public int LocalFillMax;
     public string OutputDirectory = "";
     public Action<Exception, string>? OnCompilerError { get; private set; }
 
@@ -22,11 +23,12 @@ public partial class WorldFactory
         return this;
     }
 
-    public WorldFactory EnableLocalFill(int min, int def)
+    public WorldFactory EnableLocalFill(int min, int def, int max = 99)
     {
         LocalFill = true;
         LocalFillMin = min;
         LocalDefault = def;
+        LocalFillMax = max;
         return this;
     }
 }

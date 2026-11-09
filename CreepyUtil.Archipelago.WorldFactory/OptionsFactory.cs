@@ -77,7 +77,7 @@ public class OptionsFactory(WorldFactory worldFactory)
         if (WorldFactory.LocalFill)
             AddOption(
                 "Local Fill", "% of filler to be made local",
-                new Range(WorldFactory.LocalDefault, WorldFactory.LocalFillMin, 100)
+                new Range(WorldFactory.LocalDefault, WorldFactory.LocalFillMin, WorldFactory.LocalFillMax)
             );
         // if (OptionsGroups.Any())
         // {

@@ -303,7 +303,7 @@ public class WorldInitFactory(WorldFactory worldFactory,
             );
         }
 
-        if (WorldFactory.LocalFill) UseInitFunction(method => method.AddCode(new Variable("local_fill_loc", "[]")));
+        if (WorldFactory.LocalFill) UseInitFunction(method => method.AddCode(new Variable("self.local_fill_loc", "[]")));
         else UseInitFunction();
         UseCreateRegions();
         AddCreateItems();
