@@ -249,7 +249,7 @@ public class CreateItemsMethodFactory(WorldFactory worldFactory)
 
     public IfFactory Raw_BalanceLocalFill() =>
         new IfFactory("world.enable_local_fill")
-           .AddCode("fill = math.ceil(world.location_count * (options.local_fill.value/100))")
+           .AddCode("fill = min(math.ceil(world.location_count * (options.local_fill.value/100)), len(world.local_fill_loc))")
            .AddCode("world.location_count -= fill")
            .AddCode("world.local_location_count += fill");
 }

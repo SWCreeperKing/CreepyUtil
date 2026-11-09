@@ -132,20 +132,23 @@ public class RegionFactory(WorldFactory worldFactory)
 
     public RegionFactory AddLocationsFromList(string list, string getLocation = "location[0]",
         string getRegion = "location[1]",
-        string condition = "", bool isCrucial = false)
+        string condition = "", bool isLocalFillable = true, bool isCrucial = false)
     {
         return AddIf(
             condition, new ForLoopFactory("location", list)
                .AddCode(
                     new IfFactory($"{getRegion} in region_map")
-                       .AddCode($"make_location(world, {getLocation}, {getRegion}, region_map, rule_map, {isCrucial})")
+                       .AddCode(
+                            $"make_location(world, {getLocation}, {getRegion}, region_map, rule_map, {isCrucial}, {isLocalFillable})"
+                        )
                 )
         );
     }
 
     public RegionFactory AddEventLocationsFromList(string list, string getEventLocation = "f\"Event: {location[0]}\"",
         string item = "Event Item",
-        string getLocation = "location[0]", string getRegion = "location[1]", string condition = "", bool isCrucial = false)
+        string getLocation = "location[0]", string getRegion = "location[1]", string condition = "",
+        bool isCrucial = false)
     {
         return AddIf(
             condition, new ForLoopFactory("location", list)
@@ -236,14 +239,17 @@ public class RegionFactory(WorldFactory worldFactory)
                  )
                 .AddObject(
                      new MethodFactory("make_location")
-                        .AddParams("world", "location_name", "region_name", "region_map", "rule_map", "is_location_crucial")
+                        .AddParams(
+                             "world", "location_name", "region_name", "region_map", "rule_map", "is_location_crucial",
+                             "is_location_local"
+                         )
                         .AddCode(
                              """
                              loc = make_location_adv(world, location_name, location_name, world.location_name_to_id[location_name], region_name, region_map, rule_map, is_location_crucial)
                              if loc is not None: 
                                 world.location_count += 1
                                 
-                                if world.enable_local_fill:
+                                if world.enable_local_fill and is_location_local:
                                     world.local_fill_loc.append(loc)
                              return loc
                              """
@@ -252,7 +258,8 @@ public class RegionFactory(WorldFactory worldFactory)
                 .AddObject(
                      new MethodFactory("make_event_location")
                         .AddParams(
-                             "world", "location_name_a", "location_name_b", "item_name", "id", "region_name", "region_map", "rule_map", "is_location_crucial"
+                             "world", "location_name_a", "location_name_b", "item_name", "id", "region_name",
+                             "region_map", "rule_map", "is_location_crucial"
                          )
                         .AddCode(
                              """
@@ -264,13 +271,16 @@ public class RegionFactory(WorldFactory worldFactory)
                  )
                 .AddObject(
                      new MethodFactory("make_location_adv")
-                        .AddParams("world", "location_name_a", "location_name_b", "id", "region_name", "region_map", "rule_map", "is_location_crucial")
+                        .AddParams(
+                             "world", "location_name_a", "location_name_b", "id", "region_name", "region_map",
+                             "rule_map", "is_location_crucial"
+                         )
                         .AddCode(
                              """
                              if region_name not in region_map:
                                 if is_location_crucial: throw_needed_region_error(region_name, f"make_location_adv, [{location_name_a}]")
                                 return None
-                             
+
                              location = Location(world.player, location_name_a, id, region_map[region_name])
                              region_map[region_name].locations.append(location)
 
@@ -284,15 +294,20 @@ public class RegionFactory(WorldFactory worldFactory)
                              """
                          )
                  )
-                .AddObject(new MethodFactory("throw_needed_region_error")
-                    .AddParams("region_name", "sender")
-                          .AddCode("raise ValueError(f\"For an unknown reason the region, [{region_name}] was not added as a region, it is required for [{sender}]\")"));
+                .AddObject(
+                     new MethodFactory("throw_needed_region_error")
+                        .AddParams("region_name", "sender")
+                        .AddCode(
+                             "raise ValueError(f\"For an unknown reason the region, [{region_name}] was not added as a region, it is required for [{sender}]\")"
+                         )
+                 );
 
         File.WriteAllText($"{worldFactory.OutputDirectory}{fileOutput}", regionPy.GetText());
     }
 }
 
-public readonly struct RegionData(string from, string to, string rule = "", string name = "", bool isConnectionCrucial = false)
+public readonly struct RegionData(string from, string to, string rule = "", string name = "",
+    bool isConnectionCrucial = false)
 {
     public readonly string From = from.Surround('"');
     public readonly string To = to.Surround('"');
@@ -312,18 +327,21 @@ public readonly struct EventLocationData(string region, string locationName, str
     public readonly string InheritLocationRule = inheritLocationRule.Surround('"');
     public readonly string ItemName = lockedItemName.Surround('"');
     public readonly bool IsLocationCrucial = isLocCrucial;
-    
+
     public override string ToString()
         => $"make_event_location(world, {LocationName}, {InheritLocationRule}, {ItemName}, None, {Region}, region_map, rule_map, {IsLocationCrucial})";
 }
 
-public readonly struct LocationData(string region, string locationName,
-    bool isLocCrucial = false, RegionFactory.LocationProgressType locationProgress = RegionFactory.LocationProgressType.Default)
+public readonly struct LocationData(string region, string locationName, bool isLocCrucial = false,
+    RegionFactory.LocationProgressType locationProgress = RegionFactory.LocationProgressType.Default,
+    bool isLocalFill = true)
 {
     public readonly string Region = region.Surround('"');
     public readonly string LocationName = locationName.Surround('"');
     public readonly RegionFactory.LocationProgressType LocationProgress = locationProgress;
     public readonly bool IsLocationCrucial = isLocCrucial;
+    public readonly bool IsLocalFill = isLocalFill;
 
-    public override string ToString() => $"make_location(world, {LocationName}, {Region}, region_map, rule_map, {IsLocationCrucial})";
+    public override string ToString()
+        => $"make_location(world, {LocationName}, {Region}, region_map, rule_map, {IsLocationCrucial}, {isLocalFill})";
 }
