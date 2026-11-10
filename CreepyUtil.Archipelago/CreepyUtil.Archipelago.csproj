@@ -30,6 +30,7 @@
         <Poco>$(SteamLibraryD)\Poco</Poco>
         <Loddlenaut>$(SteamLibraryF)\Loddlenaut</Loddlenaut>
         <DinoBoneMuseum>$(SteamLibraryD)\DinoBones Tidy Up the Museum</DinoBoneMuseum>
+        <ThiefSim1>$(SteamLibraryD)\Thief Simulator</ThiefSim1>
     </PropertyGroup>
 
     <ItemGroup>
@@ -100,6 +101,9 @@
         
         <Copy SourceFiles="$(ProjectBin)\Debug\net472/BundledApClient.dll" DestinationFolder="$(DinoBoneMuseum)\mod dev\DinoBonipelago\DinoBonipelago\Lib"/>
         <Copy SourceFiles="$(ProjectBin)\Debug\net472/BundledApClient.dll" DestinationFolder="$(DinoBoneMuseum)\UserLibs"/>
+        
+        <Copy SourceFiles="$(ProjectBin)\Debug\net472/BundledApClient.dll" DestinationFolder="$(ThiefSim1)\mod dev\Thiefipelago\Thiefipelago\Lib"/>
+        <Copy SourceFiles="$(ProjectBin)\Debug\net472/BundledApClient.dll" DestinationFolder="$(ThiefSim1)\UserLibs"/>
     </Target>
 
     <Target Name="AfterBuildNetStandard2" AfterTargets="Build" Condition="'$(TargetFramework)' == 'netstandard2.0'">
