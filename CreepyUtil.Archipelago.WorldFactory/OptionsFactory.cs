@@ -15,7 +15,7 @@ public partial class WorldFactory
 
 public class OptionsFactory(WorldFactory worldFactory)
 {
-    private WorldFactory WorldFactory = worldFactory;
+    public WorldFactory WorldFactory = worldFactory;
     public string OptionsGeneratorLink = "No Link Given";
 
     private List<PythonClassFactory> Options = [];

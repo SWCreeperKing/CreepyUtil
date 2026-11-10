@@ -26,14 +26,19 @@ public class RegionFactory(WorldFactory worldFactory)
         Default, Priority, Excluded,
     }
 
-    private WorldFactory WorldFactory = worldFactory;
+    public WorldFactory WorldFactory = worldFactory;
     public string RegionGeneratorLink = "No Link Given";
 
     private Dictionary<string, string> Regions = new() { ["Menu"] = "" };
     private Dictionary<string, LocationProgressType> LocationPriorities = [];
     private CodeBlockFactory CreateRegionCode = new();
     private List<RegionData> RegionDatas = [];
+    private List<LocationData> AddedLocations = [];
+    private List<EventLocationData> AddedEventLocations = [];
 
+    public LocationData[] StoredLocationData => [.. AddedLocations];
+    public EventLocationData[] StoredEventLocationData => [.. AddedEventLocations];
+    
     public RegionFactory AddRegion(string region, string condition = "")
     {
         Regions.Add(region, condition);
@@ -96,6 +101,7 @@ public class RegionFactory(WorldFactory worldFactory)
         {
             LocationPriorities[location.LocationName] = location.LocationProgress;
         }
+        AddedLocations.Add(location);
         return AddIf(condition, new CodeBlockFactory().AddCode(location.ToString()));
     }
 
@@ -108,7 +114,7 @@ public class RegionFactory(WorldFactory worldFactory)
                 LocationPriorities[location.LocationName] = location.LocationProgress;
             }
         }
-
+        AddedLocations.AddRange(locations);
         return AddIf(
             condition,
             locations.Aggregate(new CodeBlockFactory(), (factory, location) => factory.AddCode(location.ToString()))
@@ -118,11 +124,13 @@ public class RegionFactory(WorldFactory worldFactory)
 
     public RegionFactory AddEventLocation(EventLocationData location, string condition = "")
     {
+        AddedEventLocations.Add(location);
         return AddIf(condition, new CodeBlockFactory().AddCode(location.ToString()));
     }
 
     public RegionFactory AddEventLocations(string condition = "", params EventLocationData[] locations)
     {
+        AddedEventLocations.AddRange(locations);
         return AddIf(
             condition,
             locations.Aggregate(new CodeBlockFactory(), (factory, location) => factory.AddCode(location.ToString()))

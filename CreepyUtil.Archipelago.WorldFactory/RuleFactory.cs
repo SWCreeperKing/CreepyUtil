@@ -54,7 +54,7 @@ public class RuleFactory(WorldFactory worldFactory)
 
     public string LogicGeneratorLink = "No Link Given";
 
-    private WorldFactory WorldFactory = worldFactory;
+    public WorldFactory WorldFactory = worldFactory;
     private Dictionary<string, MethodFactory> LogicMethods = [];
 
     private Dictionary<string, string> LogicMethodTokens = [];

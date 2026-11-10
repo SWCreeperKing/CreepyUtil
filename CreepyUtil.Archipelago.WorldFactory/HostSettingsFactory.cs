@@ -15,7 +15,7 @@ public partial class WorldFactory
 
 public class HostSettingsFactory(WorldFactory worldFactory)
 {
-    private WorldFactory WorldFactory = worldFactory;
+    public WorldFactory WorldFactory = worldFactory;
     public string HostSettingsGeneratorLink = "No Link Given";
 
     private List<IHostSetting> Settings = [];

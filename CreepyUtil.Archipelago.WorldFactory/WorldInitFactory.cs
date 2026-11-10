@@ -46,7 +46,7 @@ public class WorldInitFactory(WorldFactory worldFactory,
         InitGeneratorLink
             = "No Link Given"; // link to (preferably github) of where you use the location generator, inserts it into the .py
 
-    private WorldFactory WorldFactory = worldFactory;
+    public WorldFactory WorldFactory = worldFactory;
 
     private PythonFactory WorldFile = new PythonFactory().AddImport("from worlds.AutoWorld import *")
                                                          .AddImports(imports);

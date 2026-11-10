@@ -19,8 +19,9 @@ public class LocationFactory(WorldFactory worldFactory)
         LocationGeneratorLink
             = "No Link Given"; // link to (preferably github) of where you use the location generator, inserts it into the .py
 
+    public WorldFactory WorldFactory = worldFactory;
+    
     private List<string> AllLocations = [];
-    private WorldFactory WorldFactory = worldFactory;
     private List<IPythonVariable> OtherVariables = [];
     private Dictionary<string, IEnumerable<string>> LocationVariablesSingle = [];
     private Dictionary<string, IEnumerable<IEnumerable<string>>> LocationVariablesDouble = [];
