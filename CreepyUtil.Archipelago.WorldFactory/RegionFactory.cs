@@ -36,6 +36,8 @@ public class RegionFactory(WorldFactory worldFactory)
     private List<LocationData> AddedLocations = [];
     private List<EventLocationData> AddedEventLocations = [];
 
+    public string[] StoredRegions => Regions.Keys.ToArray();
+    public RegionData[] StoredRegionData => [.. RegionDatas];
     public LocationData[] StoredLocationData => [.. AddedLocations];
     public EventLocationData[] StoredEventLocationData => [.. AddedEventLocations];
     
